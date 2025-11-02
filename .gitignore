@@ -1,0 +1,18 @@
+# React Native
+frontend/node_modules/
+frontend/.expo/
+frontend/.expo-shared/
+frontend/build/
+frontend/dist/
+frontend/*.log
+
+# Laravel
+backend/vendor/
+backend/node_modules/
+backend/.env
+backend/storage/
+backend/.phpunit.result.cache
+
+# Geral
+.DS_Store
+.env
