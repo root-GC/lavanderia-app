@@ -15,7 +15,7 @@ export default function Login() {
 
         <TouchableOpacity
           style={styles.button}
-          onPress={() => router.replace("/(menu)/notificacoes")}
+          onPress={() => router.replace("/(menu)/pedidos")}
           activeOpacity={0.8}
         >
           <Text style={styles.buttonText}>Login</Text>

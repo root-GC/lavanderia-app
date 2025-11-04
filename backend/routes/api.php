@@ -9,3 +9,4 @@ use App\Http\Controllers\UserController;
 // })->middleware('auth:sanctum');
 
 Route::get('/users', [UserController::class,'index']);
+Route::post('/users', [UserController::class, 'store']);

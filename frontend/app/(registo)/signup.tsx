@@ -1,6 +1,7 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, SafeAreaView } from "react-native";
 import { useRouter } from "expo-router";
+import React, { useState } from "react";
+import { Alert, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { registerUser } from "../../api/userApi"; // ajusta o caminho conforme o teu projeto
 
 export default function Signup() {
   const router = useRouter();
@@ -17,22 +18,17 @@ export default function Signup() {
 
     try {
       setLoading(true);
-      const response = await fetch("http://192.168.0.10:8000/api/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      });
-      const data = await response.json();
+      const data = { name, email, password };
+      const response = await registerUser(data);
 
-      if (response.ok) {
-        Alert.alert("Sucesso", "Conta criada com sucesso!");
-        router.replace("/(registo)/login");
-      } else {
-        Alert.alert("Erro", data.message || "Falha ao criar conta!");
-      }
-    } catch (error) {
-      Alert.alert("Erro", "Não foi possível conectar ao servidor.");
-      console.error(error);
+      Alert.alert("Sucesso", "Conta criada com sucesso!");
+      router.replace("/(registo)/login");
+    } catch (error: any) {
+      const message =
+        error.response?.data?.message || 
+        error.response?.data?.errors?.[Object.keys(error.response?.data?.errors || {})[0]]?.[0] ||
+        "Falha ao criar conta!";
+      Alert.alert("Erro", message);
     } finally {
       setLoading(false);
     }
