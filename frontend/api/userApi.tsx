@@ -1,25 +1,35 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
-interface UserRegistrationData {
-  name: string;
-  email: string;
-  password: string;
-}
+const API_URL = 'http://10.63.190.155:8000/api'; // o teu servidor Laravel
 
-const API_URL = 'http://10.71.7.155:8000/api'; // ajusta conforme o teu servidor Laravel
+const api = axios.create({
+  baseURL: API_URL,
+  headers: { 'Content-Type': 'application/json' },
+});
 
-export const registerUser = async (data: UserRegistrationData) => {
-  try {
-    const response = await axios.post(`${API_URL}/users`, data);
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      console.error(error.response?.data || error.message);
-    } else if (error instanceof Error) {
-      console.error(error.message);
-    } else {
-      console.error('An unknown error occurred');
-    }
-    throw error;
+// Intercetador para adicionar token automaticamente
+api.interceptors.request.use(async (config) => {
+  const token = await AsyncStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
+  return config;
+});
+
+export const registerUser = async (data: { name: string; email: string; password: string }) => {
+  const response = await api.post('/users', data);
+  return response.data;
 };
+
+export const loginUser = async (data: { email: string; password: string }) => {
+  const response = await api.post('/login', data);
+  return response.data;
+};
+
+export const logoutUser = async () => {
+  await api.post('/logout');
+  await AsyncStorage.removeItem('token');
+};
+
+export default api;
