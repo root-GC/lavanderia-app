@@ -10,25 +10,25 @@ export default function Login() {
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
-    if (!email || !senha) return Alert.alert("Erro", "Preenche todos os campos.");
+const handleLogin = async () => {
+  if (!email || !senha) return Alert.alert("Erro", "Preenche todos os campos.");
 
-    try {
-      setLoading(true);
-      const data = await loginUser({ email, password: senha });
+  try {
+    setLoading(true);
+    const { token, user } = await loginUser({ email, password: senha });
 
-      if (data.token) {
-        await AsyncStorage.setItem("token", data.token);
-        router.replace("/(menu)/pedidos");
-      } else {
-        Alert.alert("Erro", "Token não recebido do servidor.");
-      }
-    } catch (error: any) {
-      Alert.alert("Erro", error.response?.data?.message || "Falha no login.");
-    } finally {
-      setLoading(false);
+    if (token) {
+      await AsyncStorage.setItem("token", token);
+      router.replace("/(menu)/pedidos");
+    } else {
+      Alert.alert("Erro", "Token não recebido do servidor.");
     }
-  };
+  } catch (error: any) {
+    Alert.alert("Erro", error.response?.data?.message || "Falha no login.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <SafeAreaView style={styles.safe}>
