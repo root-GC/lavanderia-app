@@ -68,4 +68,17 @@ export const criarPedido = async (data: {
   return response.data;
 };
 
+// 📄 Buscar pedidos do utilizador
+export const getPedidos = async (user_id: number) => {
+  const response = await api.get(`/pedidos?user_id=${user_id}`);
+  return response.data; // espera { pedidos: [...] } do backend
+};
+
+// ❌ Apagar pedido
+export const deletePedido = async (pedido_id: number) => {
+  const response = await api.delete(`/pedidos/${pedido_id}`);
+  return response.data;
+};
+
+
 export default api;

@@ -12,7 +12,10 @@ class Pedido extends Model
 
     protected $fillable = [
         'user_id', 'imagem', 'tipo', 'secagem', 'passagem', 'perfumaria',
-        'peso', 'subtotal', 'iva', 'total', 'estado'
+        'peso', 'subtotal', 'iva', 'total', 'estado','servicos_adicionais'
+    ];
+    protected $casts = [
+        'servicos_adicionais' => 'array',
     ];
 
     public function user() {

@@ -10,7 +10,7 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade'); // FK para users
             $table->string('imagem'); // link da imagem
-            $table->enum('tipo', ['normal', 'delicada', 'expressa']); 
+            $table->enum('tipo', ['normal', 'delicada', 'seco']); 
             $table->float('peso');
             $table->float('subtotal');
             $table->float('iva');
