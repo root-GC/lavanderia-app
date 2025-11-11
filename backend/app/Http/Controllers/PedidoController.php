@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 
 class PedidoController extends Controller
 {
-   public function store(Request $request)
+public function store(Request $request)
 {
 
         // Loga tudo o que chega do frontend (para debug)
@@ -43,24 +43,87 @@ class PedidoController extends Controller
         'pedido' => $pedido
     ]);
 }
+
 public function index(Request $request)
 {
-    $user_id = $request->query('user_id');
-    $pedidos = Pedido::where('user_id', $user_id)->get();
-    
-    // Converte JSON em array antes de enviar
+    $query = Pedido::query();
+
+    // Filtro por user_id (obrigatório)
+    if ($request->has('user_id')) {
+        $query->where('user_id', $request->query('user_id'));
+    }
+
+    // Filtro por tipo
+    if ($request->has('tipo') && $request->tipo != '') {
+        $query->where('tipo', $request->tipo);
+    }
+
+    // Filtro por estado - CORRIGIDO
+    if ($request->has('estado') && $request->estado != '') {
+        $query->where('estado', $request->estado);
+    }
+
+    // Filtro por serviços adicionais
+    if ($request->has('servico') && $request->servico != '') {
+        $query->whereJsonContains('servicos_adicionais', $request->servico);
+    }
+
+    $pedidos = $query->get();
+
+    // Processar serviços adicionais
     $pedidos->transform(function ($pedido) {
         $pedido->servicos_adicionais = json_decode($pedido->servicos_adicionais ?? '[]', true);
-        return $pedido; // <-- super importante
+        return $pedido;
     });
 
     return response()->json(['pedidos' => $pedidos]);
+}
+
+// Lista todos os pedidos em uma página web com filtros
+public function listaWeb(Request $request)
+{
+    $query = Pedido::query();
+
+    if ($request->has('tipo') && $request->tipo != '') {
+        $query->where('tipo', $request->tipo);
+    }
+
+    if ($request->has('estado') && $request->estado != '') {
+        $query->where('estado', $request->estado);
+    }
+
+    if ($request->has('servico') && $request->servico != '') {
+        $query->whereJsonContains('servicos_adicionais', $request->servico);
+    }
+
+    $pedidos = $query->get();
+
+    // Processar serviços adicionais
+    $pedidos->transform(function ($pedido) {
+        $pedido->servicos_adicionais = json_decode($pedido->servicos_adicionais ?? '[]', true);
+        return $pedido;
+    });
+
+    return view('admin.pedidos', compact('pedidos'));
+}
+
+// Marca o pedido como concluído
+// E na função para concluir pedido:
+public function concluirPedido($id)
+{
+    $pedido = Pedido::findOrFail($id);
+    $pedido->estado = 'Concluído'; // ← IMPORTANTE: Com acento
+    $pedido->save();
+
+    return redirect('/admin/pedidos')->with('success', 'Pedido #' . $id . ' marcado como concluído!');
 }
 
 public function destroy($id)
 {
     $pedido = Pedido::findOrFail($id);
     $pedido->delete();
-    return response()->json(['success' => true]);
+
+    return redirect('/admin/pedidos')
+        ->with('success', 'Pedido #' . $id . ' eliminado com sucesso!');
 }
 }

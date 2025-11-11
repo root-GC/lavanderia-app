@@ -1,3 +1,5 @@
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
@@ -31,7 +33,7 @@ export default function Pedidos() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await api.get("/me"); // rota que retorna info do user logado
+        const response = await api.get("/me");
         setUserId(response.data.id);
       } catch (error) {
         console.error("Erro ao buscar usuário:", error);
@@ -68,194 +70,592 @@ export default function Pedidos() {
   };
 
   const handleAceitar = async () => {
-  if (!factura || !imagemRoupa) return;
+    if (!factura || !imagemRoupa) return;
 
-  try {
-    const user = await getUser(); // pega o id do user logado
+    try {
+      const user = await getUser();
 
-    const servicos = [
-      secagem && 'Secagem',
-      passagem && 'Passagem',
-      perfumaria && 'Perfumaria'
-    ].filter(Boolean) as string[];
+      const servicos = [
+        secagem && 'Secagem',
+        passagem && 'Passagem',
+        perfumaria && 'Perfumaria'
+      ].filter(Boolean) as string[];
 
-    await criarPedido({
-      user_id: user.id,
-      imagem: imagemRoupa,
-      servicos_adicionais: servicos,
-      tipo: tipo,
-      peso: parseFloat(peso),
-      subtotal: factura.subtotal,
-      iva: factura.iva,
-      total: factura.total,
-      estado: 'pendente'
-    });
+      await criarPedido({
+        user_id: user.id,
+        imagem: imagemRoupa,
+        servicos_adicionais: servicos,
+        tipo: tipo,
+        peso: parseFloat(peso),
+        subtotal: factura.subtotal,
+        iva: factura.iva,
+        total: factura.total,
+        estado: 'Pendente'
+      });
 
-    Alert.alert("Pedido Confirmado", "O seu pedido foi registado!");
-    setFactura(null);
-    setPeso("");
-    setSecagem(false);
-    setPassagem(false);
-    setPerfumaria(false);
-    setImagemRoupa(null);
+      Alert.alert("✅ Pedido Confirmado", "O seu pedido foi registado com sucesso!");
+      setFactura(null);
+      setPeso("");
+      setSecagem(false);
+      setPassagem(false);
+      setPerfumaria(false);
+      setImagemRoupa(null);
 
-  } catch (error) {
-    console.log('Erro ao enviar pedido:', error);
-    Alert.alert("Erro", "Não foi possível registar o pedido.");
-  }
-};
+    } catch (error) {
+      console.log('Erro ao enviar pedido:', error);
+      Alert.alert("❌ Erro", "Não foi possível registar o pedido.");
+    }
+  };
 
   const handleRecusar = () => {
-    setFactura(null);
-    setImagemRoupa(null);
+    Alert.alert(
+      "Cancelar Pedido",
+      "Tem certeza que deseja cancelar este pedido?",
+      [
+        { text: "Não", style: "cancel" },
+        { 
+          text: "Sim", 
+          onPress: () => {
+            setFactura(null);
+            setImagemRoupa(null);
+          }
+        }
+      ]
+    );
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      <LinearGradient
+        colors={['#F8FBFF', '#E8F4FF', '#FFFFFF']}
+        style={styles.gradientBackground}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContainer}
-          showsVerticalScrollIndicator={false}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
-          <Text style={styles.title}>Novo Pedido</Text>
-
-          {!factura ? (
-            <>
-              <ImagePickerComponent imageUri={imagemRoupa} setImageUri={setImagemRoupa} />
-
-              <Text style={styles.label}>Peso das roupas (kg):</Text>
-              <TextInput
-                style={[styles.input, erroPeso && styles.inputErro]}
-                keyboardType="numeric"
-                placeholder="Ex: 12.5"
-                value={peso}
-                onChangeText={setPeso}
-              />
-              {erroPeso && <Text style={styles.mensagemErro}>Valor não válido</Text>}
-
-              <ServiceSelector tipo={tipo} setTipo={setTipo} />
-
-              <Text style={styles.label}>Serviços adicionais:</Text>
-              <View style={styles.servicosContainer}>
-                {(
-                  [
-                    ["Secagem", secagem, setSecagem],
-                    ["Passagem", passagem, setPassagem],
-                    ["Perfumaria", perfumaria, setPerfumaria],
-                  ] as [string, boolean, React.Dispatch<React.SetStateAction<boolean>>][]
-                ).map(([label, value, setter]) => (
-                  <TouchableOpacity
-                    key={label}
-                    style={[styles.button, value && styles.buttonAtivo]}
-                    onPress={() => setter(!value)}
-                  >
-                    <Text style={styles.buttonText}>
-                      {`${label}: ${value ? "Sim" : "Não"}`}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <TouchableOpacity style={styles.gerarButton} onPress={handleFactura}>
-                <Text style={styles.gerarButtonText}>Gerar Factura</Text>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <View style={styles.facturaBox}>
-              <Text style={styles.facturaTitle}>🧾 Fatura do Pedido</Text>
-
-              {factura.imagem && (
-                <Image
-                  source={{ uri: factura.imagem }}
-                  style={styles.facturaImagem}
-                />
-              )}
-
-              {/* Tipo de Lavagem */}
-              <View style={styles.tagContainer}>
-                <Text style={styles.tagLabel}>Tipo de Lavagem:</Text>
-                <View style={[styles.tag, { backgroundColor: "#007AFF" }]}>
-                  <Text style={styles.tagText}>{factura.tipo.toUpperCase()}</Text>
-                </View>
-              </View>
-
-              {/* Serviços adicionais */}
-              <View style={styles.tagContainer}>
-                <Text style={styles.tagLabel}>Serviços Adicionais:</Text>
-                <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 5 }}>
-                  {secagem && (
-                    <View style={[styles.tag, { backgroundColor: "#34C759" }]}>
-                      <Text style={styles.tagText}>Secagem</Text>
-                    </View>
-                  )}
-                  {passagem && (
-                    <View style={[styles.tag, { backgroundColor: "#FF9500" }]}>
-                      <Text style={styles.tagText}>Passagem</Text>
-                    </View>
-                  )}
-                  {perfumaria && (
-                    <View style={[styles.tag, { backgroundColor: "#FF3B30" }]}>
-                      <Text style={styles.tagText}>Perfumaria</Text>
-                    </View>
-                  )}
-                  {!secagem && !passagem && !perfumaria && (
-                    <Text style={{ color: "#999" }}>Nenhum</Text>
-                  )}
-                </View>
-              </View>
-
-              {/* Valores */}
-              <View style={styles.valoresContainer}>
-                <Text style={styles.valorItem}>Peso: {factura.pesoNum} kg</Text>
-                <Text style={styles.valorItem}>Subtotal: {factura.subtotal.toFixed(2)} MT</Text>
-                <Text style={styles.valorItem}>IVA (16%): {factura.iva.toFixed(2)} MT</Text>
-                <Text style={styles.total}>Total: {factura.total.toFixed(2)} MT</Text>
-              </View>
-
-              <View style={styles.row}>
-                <TouchableOpacity style={[styles.button, styles.aceitar]} onPress={handleAceitar}>
-                  <Text style={styles.buttonText}>Aceitar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.button, styles.recusar]} onPress={handleRecusar}>
-                  <Text style={styles.buttonText}>Recusar</Text>
-                </TouchableOpacity>
-              </View>
+          <ScrollView
+            contentContainerStyle={styles.scrollContainer}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.header}>
+              <LinearGradient
+                colors={['#007AFF', '#0056CC']}
+                style={styles.headerGradient}
+              >
+                <Ionicons name="shirt-outline" size={32} color="#FFFFFF" />
+                <Text style={styles.title}>Novo Pedido</Text>
+                <Text style={styles.subtitle}>Faça seu pedido de lavagem</Text>
+              </LinearGradient>
             </View>
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
+
+            {!factura ? (
+              <View style={styles.formContainer}>
+                <View style={styles.card}>
+                  <Text style={styles.cardTitle}>
+                    <Ionicons name="camera-outline" size={20} color="#007AFF" />
+                    {" "}Foto das Roupas
+                  </Text>
+                  <ImagePickerComponent imageUri={imagemRoupa} setImageUri={setImagemRoupa} />
+                </View>
+
+                <View style={styles.card}>
+                  <Text style={styles.cardTitle}>
+                    <Ionicons name="scale-outline" size={20} color="#007AFF" />
+                    {" "}Peso das Roupas
+                  </Text>
+                  <TextInput
+                    style={[styles.input, erroPeso && styles.inputErro]}
+                    keyboardType="numeric"
+                    placeholder="Ex: 12.5 kg"
+                    placeholderTextColor="#999"
+                    value={peso}
+                    onChangeText={setPeso}
+                  />
+                  {erroPeso && (
+                    <View style={styles.erroContainer}>
+                      <Ionicons name="warning-outline" size={16} color="#FF3B30" />
+                      <Text style={styles.mensagemErro}>Valor não válido</Text>
+                    </View>
+                  )}
+                </View>
+
+                <View style={styles.card}>
+                  <Text style={styles.cardTitle}>
+                    <Ionicons name="options-outline" size={20} color="#007AFF" />
+                    {" "}Tipo de Lavagem
+                  </Text>
+                  <ServiceSelector tipo={tipo} setTipo={setTipo} />
+                </View>
+
+                <View style={styles.card}>
+                  <Text style={styles.cardTitle}>
+                    <Ionicons name="sparkles-outline" size={20} color="#007AFF" />
+                    {" "}Serviços Adicionais
+                  </Text>
+                  <View style={styles.servicosContainer}>
+                    {(
+                      [
+                        ["Secagem", secagem, setSecagem, "water-outline"],
+                        ["Passagem", passagem, setPassagem, "flame-outline"],
+                        ["Perfumaria", perfumaria, setPerfumaria, "flower-outline"],
+                      ] as [string, boolean, React.Dispatch<React.SetStateAction<boolean>>, string][]
+                    ).map(([label, value, setter, icon]) => (
+                      <TouchableOpacity
+                        key={label}
+                        style={[styles.serviceButton, value && styles.serviceButtonAtivo]}
+                        onPress={() => setter(!value)}
+                      >
+                        <View style={styles.serviceIconContainer}>
+                          <Ionicons 
+                            name={icon as React.ComponentProps<typeof Ionicons>['name']} 
+                            size={20} 
+                            color={value ? "#FFFFFF" : "#007AFF"} 
+                          />
+                        </View>
+                        <Text style={[styles.serviceButtonText, value && styles.serviceButtonTextAtivo]}>
+                          {label}
+                        </Text>
+                        <View style={[styles.checkbox, value && styles.checkboxAtivo]}>
+                          {value && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                <TouchableOpacity style={styles.gerarButton} onPress={handleFactura}>
+                  <LinearGradient
+                    colors={['#007AFF', '#0056CC']}
+                    style={styles.gerarButtonGradient}
+                  >
+                    <Ionicons name="document-text-outline" size={24} color="#FFFFFF" />
+                    <Text style={styles.gerarButtonText}>Gerar Factura</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.facturaContainer}>
+                <LinearGradient
+                  colors={['#FFFFFF', '#F8FBFF']}
+                  style={styles.facturaBox}
+                >
+                  <View style={styles.facturaHeader}>
+                    <Ionicons name="document-text" size={32} color="#007AFF" />
+                    <Text style={styles.facturaTitle}>Fatura do Pedido</Text>
+                  </View>
+
+                  {factura.imagem && (
+                    <Image
+                      source={{ uri: factura.imagem }}
+                      style={styles.facturaImagem}
+                    />
+                  )}
+
+                  <View style={styles.detailsGrid}>
+                    <View style={styles.detailItem}>
+                      <Text style={styles.detailLabel}>Tipo de Lavagem</Text>
+                      <View style={[styles.tag, { backgroundColor: "#007AFF" }]}>
+                        <Text style={styles.tagText}>{factura.tipo.toUpperCase()}</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.detailItem}>
+                      <Text style={styles.detailLabel}>Peso</Text>
+                      <Text style={styles.detailValue}>{factura.pesoNum} kg</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.servicosSection}>
+                    <Text style={styles.sectionTitle}>Serviços Adicionais</Text>
+                    <View style={styles.tagsContainer}>
+                      {secagem && (
+                        <View style={[styles.serviceTag, { backgroundColor: "#34C759" }]}>
+                          <Ionicons name="water-outline" size={14} color="#FFFFFF" />
+                          <Text style={styles.serviceTagText}>Secagem</Text>
+                        </View>
+                      )}
+                      {passagem && (
+                        <View style={[styles.serviceTag, { backgroundColor: "#FF9500" }]}>
+                          <Ionicons name="flame-outline" size={14} color="#FFFFFF" />
+                          <Text style={styles.serviceTagText}>Passagem</Text>
+                        </View>
+                      )}
+                      {perfumaria && (
+                        <View style={[styles.serviceTag, { backgroundColor: "#AF52DE" }]}>
+                          <Ionicons name="flower-outline" size={14} color="#FFFFFF" />
+                          <Text style={styles.serviceTagText}>Perfumaria</Text>
+                        </View>
+                      )}
+                      {!secagem && !passagem && !perfumaria && (
+                        <Text style={styles.noServicesText}>Nenhum serviço adicional</Text>
+                      )}
+                    </View>
+                  </View>
+
+                  <View style={styles.valoresContainer}>
+                    <Text style={styles.sectionTitle}>Valores</Text>
+                    <View style={styles.valorRow}>
+                      <Text style={styles.valorLabel}>Subtotal</Text>
+                      <Text style={styles.valorValue}>{factura.subtotal.toFixed(2)} MT</Text>
+                    </View>
+                    <View style={styles.valorRow}>
+                      <Text style={styles.valorLabel}>IVA (16%)</Text>
+                      <Text style={styles.valorValue}>{factura.iva.toFixed(2)} MT</Text>
+                    </View>
+                    <View style={[styles.valorRow, styles.totalRow]}>
+                      <Text style={styles.totalLabel}>Total</Text>
+                      <Text style={styles.totalValue}>{factura.total.toFixed(2)} MT</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.actionsContainer}>
+                    <TouchableOpacity style={styles.recusarButton} onPress={handleRecusar}>
+                      <Ionicons name="close-circle-outline" size={20} color="#FF3B30" />
+                      <Text style={styles.recusarButtonText}>Recusar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.aceitarButton} onPress={handleAceitar}>
+                      <LinearGradient
+                        colors={['#34C759', '#28A745']}
+                        style={styles.aceitarButtonGradient}
+                      >
+                        <Ionicons name="checkmark-circle-outline" size={20} color="#FFFFFF" />
+                        <Text style={styles.aceitarButtonText}>Aceitar</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
+                </LinearGradient>
+              </View>
+            )}
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </LinearGradient>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#f2f2f2" },
-  scrollContainer: { padding: 20, paddingBottom: 40 },
-  title: { fontSize: 24, fontWeight: "bold", marginBottom: 20, color: "#333", textAlign: "center" },
-  label: { fontSize: 16, marginTop: 15, marginBottom: 5, color: "#555" },
-  input: { borderWidth: 1, borderColor: "#ccc", borderRadius: 12, padding: 12, backgroundColor: "#fff" },
-  inputErro: { borderColor: "#FF3B30" },
-  mensagemErro: { color: "#FF3B30", fontSize: 14, marginTop: 5 },
-  servicosContainer: { flexDirection: "row", justifyContent: "space-between", flexWrap: "wrap", marginBottom: 15 },
-  button: { backgroundColor: "#007AFF", paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, alignItems: "center", marginVertical: 5, minWidth: "30%" },
-  buttonAtivo: { backgroundColor: "#34C759" },
-  buttonText: { color: "#fff", fontWeight: "600", textAlign: "center" },
-  gerarButton: { backgroundColor: "#FF9500", paddingVertical: 14, borderRadius: 14, alignItems: "center", marginTop: 20 },
-  gerarButtonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
-  facturaBox: { backgroundColor: "#fff", borderRadius: 16, padding: 20, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3, marginBottom: 20 },
-  facturaTitle: { fontSize: 22, fontWeight: "bold", marginBottom: 10, textAlign: "center" },
-  facturaImagem: { width: "100%", height: 200, borderRadius: 12, marginBottom: 15 },
-  tagContainer: { marginBottom: 10 },
-  tagLabel: { fontSize: 16, color: "#555", marginBottom: 5 },
-  tag: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, marginRight: 8, marginBottom: 8 },
-  tagText: { color: "#fff", fontWeight: "600" },
-  valoresContainer: { marginTop: 10 },
-  valorItem: { fontSize: 16, marginBottom: 4, color: "#333" },
-  total: { fontWeight: "bold", fontSize: 18, marginTop: 8, color: "#007AFF" },
-  row: { flexDirection: "row", justifyContent: "space-between", marginTop: 20 },
-  aceitar: { backgroundColor: "#34C759", flex: 1, marginRight: 5 },
-  recusar: { backgroundColor: "#FF3B30", flex: 1, marginLeft: 5 },
+  safeArea: { 
+    flex: 1, 
+    backgroundColor: "#FFFFFF" 
+  },
+  gradientBackground: {
+    flex: 1,
+  },
+  scrollContainer: { 
+    flexGrow: 1,
+  },
+  header: {
+    marginBottom: 20,
+  },
+  headerGradient: {
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  title: { 
+    fontSize: 28, 
+    fontWeight: "bold", 
+    color: "#FFFFFF", 
+    marginTop: 10,
+    textAlign: "center" 
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "rgba(255,255,255,0.8)",
+    marginTop: 5,
+    textAlign: "center"
+  },
+  formContainer: {
+    padding: 20,
+  },
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: "#007AFF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: "rgba(0, 122, 255, 0.1)",
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1C1C1E",
+    marginBottom: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  input: { 
+    borderWidth: 1, 
+    borderColor: "#E5E5EA", 
+    borderRadius: 16, 
+    padding: 16, 
+    backgroundColor: "#F8F9FA",
+    fontSize: 16,
+    color: "#1C1C1E",
+  },
+  inputErro: { 
+    borderColor: "#FF3B30",
+    backgroundColor: "#FFF5F5",
+  },
+  erroContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  mensagemErro: { 
+    color: "#FF3B30", 
+    fontSize: 14, 
+    marginLeft: 6,
+    fontWeight: '500'
+  },
+  servicosContainer: { 
+    marginTop: 10,
+  },
+  serviceButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: "#F8F9FA",
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 10,
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  serviceButtonAtivo: {
+    backgroundColor: "#007AFF",
+    borderColor: "#007AFF",
+  },
+  serviceIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(0, 122, 255, 0.1)",
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  serviceButtonText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#1C1C1E",
+  },
+  serviceButtonTextAtivo: {
+    color: "#FFFFFF",
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#C7C7CC",
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxAtivo: {
+    backgroundColor: "#34C759",
+    borderColor: "#34C759",
+  },
+  gerarButton: {
+    marginTop: 10,
+    borderRadius: 20,
+    shadowColor: "#007AFF",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  gerarButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
+    borderRadius: 20,
+  },
+  gerarButtonText: { 
+    color: "#fff", 
+    fontWeight: "bold", 
+    fontSize: 18,
+    marginLeft: 8,
+  },
+  facturaContainer: {
+    padding: 20,
+  },
+  facturaBox: {
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: "rgba(0, 122, 255, 0.1)",
+  },
+  facturaHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  facturaTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#1C1C1E",
+    marginLeft: 10,
+  },
+  facturaImagem: {
+    width: "100%",
+    height: 200,
+    borderRadius: 16,
+    marginBottom: 20,
+  },
+  detailsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  detailItem: {
+    flex: 1,
+  },
+  detailLabel: {
+    fontSize: 14,
+    color: "#8E8E93",
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  detailValue: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1C1C1E",
+  },
+  tag: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  tagText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+    fontSize: 12,
+  },
+  servicosSection: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1C1C1E",
+    marginBottom: 12,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  serviceTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  serviceTagText: {
+    color: "#FFFFFF",
+    fontWeight: "500",
+    fontSize: 12,
+    marginLeft: 4,
+  },
+  noServicesText: {
+    color: "#8E8E93",
+    fontStyle: 'italic',
+  },
+  valoresContainer: {
+    marginBottom: 24,
+  },
+  valorRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F2F2F7",
+  },
+  totalRow: {
+    borderBottomWidth: 0,
+    marginTop: 8,
+  },
+  valorLabel: {
+    fontSize: 16,
+    color: "#8E8E93",
+  },
+  valorValue: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#1C1C1E",
+  },
+  totalLabel: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#1C1C1E",
+  },
+  totalValue: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#007AFF",
+  },
+  actionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  recusarButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: "#FFF5F5",
+    paddingVertical: 16,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: "#FF3B30",
+  },
+  recusarButtonText: {
+    color: "#FF3B30",
+    fontWeight: "600",
+    fontSize: 16,
+    marginLeft: 8,
+  },
+  aceitarButton: {
+    flex: 1,
+    borderRadius: 16,
+    shadowColor: "#34C759",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  aceitarButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 16,
+  },
+  aceitarButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+    fontSize: 16,
+    marginLeft: 8,
+  },
 });

@@ -31,3 +31,4 @@ Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
 Route::middleware('auth:sanctum')->get('/pedidos', [PedidoController::class, 'index']);
 
 Route::middleware('auth:sanctum')->delete('/pedidos/{id}', [PedidoController::class, 'destroy']);
+

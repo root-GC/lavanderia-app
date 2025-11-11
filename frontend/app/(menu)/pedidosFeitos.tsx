@@ -1,6 +1,18 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
-import { useCallback, useState } from "react";
-import { ActivityIndicator, FlatList, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import api, { getUser } from "../../api/userApi";
 
@@ -23,11 +35,20 @@ export default function PedidosFeitos() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedPedido, setSelectedPedido] = useState<Pedido | null>(null);
 
+  // filtros
+  const [filtroTipo, setFiltroTipo] = useState<string | null>(null);
+  const [filtroEstado, setFiltroEstado] = useState<string | null>(null);
+  const [filtroServico, setFiltroServico] = useState<string | null>(null);
+
   const fetchPedidos = async () => {
     try {
       setLoading(true);
       const user = await getUser();
-      const response = await api.get(`/pedidos?user_id=${user.id}`);
+      let query = `/pedidos?user_id=${user.id}`;
+      if (filtroTipo) query += `&tipo=${filtroTipo}`;
+      if (filtroEstado) query += `&estado=${filtroEstado}`;
+      if (filtroServico) query += `&servico=${filtroServico}`;
+      const response = await api.get(query);
       setPedidos(response.data.pedidos || []);
     } catch (error) {
       console.log("Erro ao buscar pedidos:", error);
@@ -36,15 +57,17 @@ export default function PedidosFeitos() {
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchPedidos();
-    }, [])
-  );
+  useFocusEffect(useCallback(() => {
+    fetchPedidos();
+  }, []));
+
+  // atualiza pedidos ao mudar filtro
+  useEffect(() => {
+    fetchPedidos();
+  }, [filtroTipo, filtroEstado, filtroServico]);
 
   const deletePedido = async (id: number) => {
-    // Implementa confirmação antes de apagar
-    setPedidos((prev) => prev.filter((p) => p.id !== id));
+    setPedidos(prev => prev.filter(p => p.id !== id));
     try {
       await api.delete(`/pedidos/${id}`);
     } catch (error) {
@@ -57,67 +80,259 @@ export default function PedidosFeitos() {
     setModalVisible(true);
   };
 
+  const getEstadoColor = (estado: string) => {
+    switch(estado.toLowerCase()) {
+      case 'pendente':
+        return '#FF6B6B';
+      case 'concluído':
+        return '#34C759';
+      case 'lavando':
+        return '#007AFF';
+      default:
+        return '#8E8E93';
+    }
+  };
+
+  const getEstadoIcon = (estado: string) => {
+    switch(estado.toLowerCase()) {
+      case 'pendente':
+        return 'time-outline';
+      case 'concluído':
+        return 'checkmark-done-circle-outline';
+      case 'lavando':
+        return 'water-outline';
+      default:
+        return 'help-circle-outline';
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('pt-PT', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   const renderItem = ({ item }: { item: Pedido }) => (
-    <View style={styles.card}>
+    <TouchableOpacity style={styles.card} onPress={() => openModal(item)}>
       <Image source={{ uri: item.imagem }} style={styles.image} />
-      <View style={{ flex: 1 }}>
-        <Text style={styles.name}>Tipo: {item.tipo}</Text>
-        <Text>Serviços: {item.servicos_adicionais?.join(", ")}</Text>
-        <Text>Peso: {item.peso} kg</Text>
-        <Text>Total: {item.total} MT</Text>
-        <Text>Status: {item.estado}</Text>
-        <View style={styles.row}>
-          <TouchableOpacity style={styles.viewButton} onPress={() => openModal(item)}>
-            <Text style={styles.btnText}>Ver</Text>
+      <View style={styles.cardContent}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.pedidoId}>#{item.id}</Text>
+          <View style={[styles.estadoBadge, { backgroundColor: getEstadoColor(item.estado) }]}>
+            <Ionicons name={getEstadoIcon(item.estado)} size={14} color="#FFFFFF" />
+            <Text style={styles.estadoText}>{item.estado}</Text>
+          </View>
+        </View>
+        
+        <Text style={styles.tipoText}>{item.tipo}</Text>
+        
+        <View style={styles.servicosContainer}>
+          {item.servicos_adicionais?.map((servico, index) => (
+            <View key={index} style={styles.servicoTag}>
+              <Text style={styles.servicoText}>{servico}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.cardFooter}>
+          <View style={styles.infoItem}>
+            <Ionicons name="scale-outline" size={16} color="#8E8E93" />
+            <Text style={styles.infoText}>{item.peso} kg</Text>
+          </View>
+          <View style={styles.infoItem}>
+            <Ionicons name="cash-outline" size={16} color="#8E8E93" />
+            <Text style={styles.totalText}>{item.total.toFixed(2)} MT</Text>
+          </View>
+        </View>
+
+        <View style={styles.actionsRow}>
+          <TouchableOpacity 
+            style={styles.viewButton} 
+            onPress={() => openModal(item)}
+          >
+            <Ionicons name="eye-outline" size={16} color="#007AFF" />
+            <Text style={styles.viewButtonText}>Ver Detalhes</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.cancelButton} onPress={() => deletePedido(item.id)}>
-            <Text style={styles.btnText}>Apagar</Text>
+          <TouchableOpacity 
+            style={styles.deleteButton} 
+            onPress={() => deletePedido(item.id)}
+          >
+            <Ionicons name="trash-outline" size={16} color="#FF3B30" />
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   if (loading) {
     return (
-      <View style={[styles.safeArea, { justifyContent: "center", alignItems: "center" }]}>
-        <ActivityIndicator size="large" color="#007AFF" />
+      <View style={[styles.safeArea, styles.centerContent]}>
+        <LinearGradient
+          colors={['#F8FBFF', '#E8F4FF']}
+          style={styles.loadingContainer}
+        >
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.loadingText}>Carregando pedidos...</Text>
+        </LinearGradient>
       </View>
     );
   }
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <Text style={styles.title}>Pedidos Feitos</Text>
-        {pedidos.length === 0 ? (
-          <Text style={{ textAlign: "center", marginTop: 20 }}>Nenhum pedido encontrado.</Text>
-        ) : (
-          <FlatList
-            data={pedidos}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={renderItem}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-      </View>
+      <LinearGradient
+        colors={['#F8FBFF', '#E8F4FF', '#FFFFFF']}
+        style={styles.gradientBackground}
+      >
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <LinearGradient
+              colors={['#007AFF', '#0056CC']}
+              style={styles.headerGradient}
+            >
+              <Ionicons name="list-circle-outline" size={32} color="#FFFFFF" />
+              <Text style={styles.title}>Meus Pedidos</Text>
+              <Text style={styles.subtitle}>Acompanhe seus pedidos de lavagem</Text>
+            </LinearGradient>
+          </View>
 
-      {/* Modal para detalhes */}
+          {/* FILTROS */}
+          <View style={styles.filtrosContainer}>
+            <Text style={styles.filtrosTitle}>Filtrar por:</Text>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              style={styles.filtrosScroll}
+            >
+              <View style={styles.filtrosRow}>
+                <TouchableOpacity 
+                  style={[styles.filterButton, filtroTipo === "normal" && styles.filterActive]} 
+                  onPress={() => setFiltroTipo(filtroTipo === "normal" ? null : "normal")}
+                >
+                  <Ionicons name="shirt-outline" size={16} color={filtroTipo === "normal" ? "#FFFFFF" : "#007AFF"} />
+                  <Text style={[styles.filterText, filtroTipo === "normal" && styles.filterTextActive]}>Normal</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.filterButton, filtroTipo === "delicada" && styles.filterActive]} 
+                  onPress={() => setFiltroTipo(filtroTipo === "delicada" ? null : "delicada")}
+                >
+                  <Ionicons name="flower-outline" size={16} color={filtroTipo === "delicada" ? "#FFFFFF" : "#007AFF"} />
+                  <Text style={[styles.filterText, filtroTipo === "delicada" && styles.filterTextActive]}>Delicada</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.filterButton, filtroEstado === "pendente" && styles.filterActive]} 
+                  onPress={() => setFiltroEstado(filtroEstado === "pendente" ? null : "pendente")}
+                >
+                  <Ionicons name="time-outline" size={16} color={filtroEstado === "pendente" ? "#FFFFFF" : "#FF6B6B"} />
+                  <Text style={[styles.filterText, filtroEstado === "pendente" && styles.filterTextActive]}>Pendente</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.filterButton, filtroEstado === "concluído" && styles.filterActive]} 
+                  onPress={() => setFiltroEstado(filtroEstado === "concluído" ? null : "concluído")}
+                >
+                  <Ionicons name="checkmark-circle-outline" size={16} color={filtroEstado === "concluído" ? "#FFFFFF" : "#34C759"} />
+                  <Text style={[styles.filterText, filtroEstado === "concluído" && styles.filterTextActive]}>Concluído</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+
+          {pedidos.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="file-tray-outline" size={64} color="#C7C7CC" />
+              <Text style={styles.emptyTitle}>Nenhum pedido encontrado</Text>
+              <Text style={styles.emptyText}>Seus pedidos aparecerão aqui</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={pedidos}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={renderItem}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.listContent}
+            />
+          )}
+        </View>
+      </LinearGradient>
+
+      {/* Modal de Detalhes */}
       <Modal visible={modalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <ScrollView>
-              {selectedPedido &&
-                Object.entries(selectedPedido).map(([key, value]) => (
-                  <View key={key} style={styles.rowDetail}>
-                    <Text style={styles.key}>{key}:</Text>
-                    <Text style={styles.value}>{Array.isArray(value) ? value.join(", ") : value}</Text>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Detalhes do Pedido</Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <Ionicons name="close-circle" size={28} color="#8E8E93" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalScroll}>
+              {selectedPedido && (
+                <>
+                  <Image source={{ uri: selectedPedido.imagem }} style={styles.modalImage} />
+                  
+                  <View style={styles.detailSection}>
+                    <Text style={styles.sectionTitle}>Informações Gerais</Text>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>ID do Pedido:</Text>
+                      <Text style={styles.detailValue}>#{selectedPedido.id}</Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Tipo:</Text>
+                      <Text style={styles.detailValue}>{selectedPedido.tipo}</Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Estado:</Text>
+                      <View style={[styles.estadoBadge, { backgroundColor: getEstadoColor(selectedPedido.estado) }]}>
+                        <Text style={styles.estadoText}>{selectedPedido.estado}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Data:</Text>
+                      <Text style={styles.detailValue}>{formatDate(selectedPedido.created_at)}</Text>
+                    </View>
                   </View>
-                ))}
+
+                  <View style={styles.detailSection}>
+                    <Text style={styles.sectionTitle}>Serviços</Text>
+                    <View style={styles.servicosModal}>
+                      {selectedPedido.servicos_adicionais?.map((servico, index) => (
+                        <View key={index} style={styles.servicoTagModal}>
+                          <Text style={styles.servicoTextModal}>{servico}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+
+                  <View style={styles.detailSection}>
+                    <Text style={styles.sectionTitle}>Valores</Text>
+                    <View style={styles.valorRow}>
+                      <Text style={styles.valorLabel}>Peso:</Text>
+                      <Text style={styles.valorValue}>{selectedPedido.peso} kg</Text>
+                    </View>
+                    <View style={styles.valorRow}>
+                      <Text style={styles.valorLabel}>Subtotal:</Text>
+                      <Text style={styles.valorValue}>{selectedPedido.subtotal.toFixed(2)} MT</Text>
+                    </View>
+                    <View style={styles.valorRow}>
+                      <Text style={styles.valorLabel}>IVA (16%):</Text>
+                      <Text style={styles.valorValue}>{selectedPedido.iva.toFixed(2)} MT</Text>
+                    </View>
+                    <View style={[styles.valorRow, styles.totalRow]}>
+                      <Text style={styles.totalLabel}>Total:</Text>
+                      <Text style={styles.totalValue}>{selectedPedido.total.toFixed(2)} MT</Text>
+                    </View>
+                  </View>
+                </>
+              )}
             </ScrollView>
-            <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
-              <Text style={styles.btnText}>Fechar</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -126,20 +341,340 @@ export default function PedidosFeitos() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#fff" },
-  container: { flex: 1, padding: 20 },
-  title: { fontSize: 24, fontWeight: "bold", marginBottom: 15 },
-  card: { flexDirection: "row", marginBottom: 15, backgroundColor: "#f1f5f9", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: "#ddd" },
-  image: { width: 60, height: 60, borderRadius: 8, marginRight: 10 },
-  name: { fontWeight: "bold", marginBottom: 3 },
-  row: { flexDirection: "row", marginTop: 8 },
-  viewButton: { flex: 1, backgroundColor: "#007AFF", padding: 8, borderRadius: 8, alignItems: "center", marginRight: 5 },
-  cancelButton: { flex: 1, backgroundColor: "#FF3B30", padding: 8, borderRadius: 8, alignItems: "center", marginLeft: 5 },
-  btnText: { color: "#fff", fontWeight: "600" },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", padding: 20 },
-  modalContent: { backgroundColor: "#fff", borderRadius: 12, padding: 20, maxHeight: "80%" },
-  rowDetail: { flexDirection: "row", marginBottom: 8, flexWrap: "wrap" },
-  key: { fontWeight: "bold", marginRight: 5 },
-  value: { flexShrink: 1 },
-  closeButton: { backgroundColor: "#007AFF", padding: 10, borderRadius: 8, alignItems: "center", marginTop: 10 },
+  safeArea: { 
+    flex: 1, 
+    backgroundColor: "#FFFFFF" 
+  },
+  gradientBackground: {
+    flex: 1,
+  },
+  centerContent: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    width: '100%',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+  container: { 
+    flex: 1, 
+  },
+  header: {
+    marginBottom: 20,
+  },
+  headerGradient: {
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  title: { 
+    fontSize: 28, 
+    fontWeight: "bold", 
+    color: "#FFFFFF", 
+    marginTop: 10,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "rgba(255,255,255,0.8)",
+    marginTop: 5,
+  },
+  filtrosContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  filtrosTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1C1C1E',
+    marginBottom: 12,
+  },
+  filtrosScroll: {
+    flexGrow: 0,
+  },
+  filtrosRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#E5E5EA',
+    gap: 6,
+  },
+  filterActive: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  filterText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#007AFF',
+  },
+  filterTextActive: {
+    color: '#FFFFFF',
+  },
+  listContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 122, 255, 0.1)',
+  },
+  image: { 
+    width: 80, 
+    height: 80, 
+    borderRadius: 12, 
+    marginRight: 16 
+  },
+  cardContent: {
+    flex: 1,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  pedidoId: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1C1C1E',
+  },
+  estadoBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 4,
+  },
+  estadoText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  tipoText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
+    marginBottom: 8,
+  },
+  servicosContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 12,
+  },
+  servicoTag: {
+    backgroundColor: '#F2F2F7',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  servicoText: {
+    fontSize: 12,
+    color: '#8E8E93',
+    fontWeight: '500',
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#8E8E93',
+  },
+  totalText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#007AFF',
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  viewButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 6,
+  },
+  viewButtonText: {
+    color: '#007AFF',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  deleteButton: {
+    padding: 10,
+    backgroundColor: 'rgba(255, 59, 48, 0.1)',
+    borderRadius: 12,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1C1C1E',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#8E8E93',
+    textAlign: 'center',
+  },
+  modalOverlay: { 
+    flex: 1, 
+    backgroundColor: "rgba(0,0,0,0.5)", 
+    justifyContent: "center", 
+    padding: 20 
+  },
+  modalContent: { 
+    backgroundColor: "#fff", 
+    borderRadius: 24, 
+    padding: 0,
+    maxHeight: "80%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F2F2F7',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1C1C1E',
+  },
+  modalScroll: {
+    padding: 20,
+  },
+  modalImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 16,
+    marginBottom: 20,
+  },
+  detailSection: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1C1C1E',
+    marginBottom: 12,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F2F2F7',
+  },
+  detailLabel: {
+    fontSize: 16,
+    color: '#8E8E93',
+    fontWeight: '500',
+  },
+  detailValue: {
+    fontSize: 16,
+    color: '#1C1C1E',
+    fontWeight: '600',
+  },
+  servicosModal: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  servicoTagModal: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  servicoTextModal: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  valorRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F2F2F7',
+  },
+  valorLabel: {
+    fontSize: 16,
+    color: '#8E8E93',
+  },
+  valorValue: {
+    fontSize: 16,
+    color: '#1C1C1E',
+    fontWeight: '500',
+  },
+  totalRow: {
+    borderBottomWidth: 0,
+    marginTop: 8,
+  },
+  totalLabel: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1C1C1E',
+  },
+  totalValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#007AFF',
+  },
 });
