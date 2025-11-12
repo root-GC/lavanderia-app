@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
@@ -28,7 +30,9 @@ class UserController extends Controller
         'password' => 'required|string|min:6',
         'telefone' => 'nullable|string|max:9', // novo campo
         'endereco' => 'nullable|string|max:255', // novo campo
-    ]);
+    ],);
+
+    
 
     // Cria o utilizador
     $user = User::create([
@@ -48,18 +52,32 @@ class UserController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+   public function show(Request $request)
     {
-        //
+        return response()->json(Auth::user());
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
+/**
+ * Update the specified resource in storage.
+ */
+public function update(Request $request)
+{
+    $user = Auth::user();
+
+    $validated = $request->validate([
+        'name' => 'required|string|max:255',
+        'email' => 'required|email|unique:users,email,' . $user->id,
+        'telefone' => 'nullable|string|max:9',
+        'endereco' => 'nullable|string|max:255',
+    ]);
+
+    $user->update($validated);
+
+    return response()->json([
+        'message' => 'Dados atualizados com sucesso!',
+        'user' => $user
+    ]);
+}
 
     /**
      * Remove the specified resource from storage.

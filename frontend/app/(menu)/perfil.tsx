@@ -1,4 +1,5 @@
 import { MaterialIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -13,7 +14,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import api, { logoutUser } from "../../api/userApi";
 
 const UserProfile = () => {
@@ -187,9 +187,21 @@ const UserProfile = () => {
           </View>
         </View>
       </ScrollView>
+      
+
 
       {/* Logout Button */}
       <View style={styles.logoutContainer}>
+        
+        {/* Botão Editar Perfil */}
+        <TouchableOpacity
+          style={[styles.logoutButton, { backgroundColor: "rgba(0,122,255,0.08)", marginBottom: 10 }]}
+          onPress={() => router.push("/(hidden)/editProfile")} // cria a tela EditProfile.tsx
+        >
+          <MaterialIcons name="edit" size={18} color="#007AFF" />
+          <Text style={[styles.logoutText, { color: "#007AFF" }]}>Editar Perfil</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <MaterialIcons name="logout" size={18} color="#FF3B30" />
           <Text style={styles.logoutText}>Terminar Sessão</Text>

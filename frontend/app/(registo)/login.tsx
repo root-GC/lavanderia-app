@@ -1,33 +1,99 @@
+import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { 
-  Alert, 
-  SafeAreaView, 
-  StyleSheet, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  View,
+import {
+  ActivityIndicator,
+  Alert,
+  SafeAreaView,
   ScrollView,
-  ActivityIndicator
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { MaterialIcons } from "@expo/vector-icons";
 import { loginUser } from "../../api/userApi";
+
+interface ValidationErrors {
+  email?: string;
+  senha?: string;
+}
 
 export default function Login() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<ValidationErrors>({});
+
+  const validateField = (field: string, value: string): string => {
+    switch (field) {
+      case 'email':
+        if (!value.trim()) return 'Email é obrigatório';
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(value)) return 'Email inválido';
+        return '';
+      
+      case 'senha':
+        if (!value) return 'Senha é obrigatória';
+        if (value.length < 1) return 'Senha é obrigatória';
+        return '';
+      
+      default:
+        return '';
+    }
+  };
+
+  const handleFieldChange = (field: string, value: string) => {
+    // Atualiza o valor do campo
+    switch (field) {
+      case 'email':
+        setEmail(value);
+        break;
+      case 'senha':
+        setSenha(value);
+        break;
+    }
+
+    // Validação em tempo real (apenas limpa o erro se estiver correto)
+    const error = validateField(field, value);
+    if (!error && errors[field as keyof ValidationErrors]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  const handleFieldBlur = (field: string, value: string) => {
+    // Validação quando o campo perde o foco
+    const error = validateField(field, value);
+    setErrors(prev => ({ ...prev, [field]: error }));
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: ValidationErrors = {
+      email: validateField('email', email),
+      senha: validateField('senha', senha),
+    };
+
+    setErrors(newErrors);
+
+    // Verifica se não há erros
+    return !Object.values(newErrors).some(error => error !== '');
+  };
 
   const handleLogin = async () => {
-    if (!email || !senha) return Alert.alert("Erro", "Preenche todos os campos.");
+    if (!validateForm()) {
+      Alert.alert("Erro", "Por favor, corrija os erros no formulário!");
+      return;
+    }
 
     try {
       setLoading(true);
-      const { token, user } = await loginUser({ email, password: senha });
+      const { token, user } = await loginUser({ 
+        email: email.trim().toLowerCase(), 
+        password: senha 
+      });
 
       if (token) {
         await AsyncStorage.setItem("token", token);
@@ -36,7 +102,21 @@ export default function Login() {
         Alert.alert("Erro", "Token não recebido do servidor.");
       }
     } catch (error: any) {
-      Alert.alert("Erro", error.response?.data?.message || "Falha no login.");
+      const errorMessage = error.response?.data?.message || "Falha no login.";
+      
+      // Tratamento específico para erros comuns
+      if (errorMessage.includes('credenciais') || errorMessage.includes('inválido') || errorMessage.includes('incorreto')) {
+        setErrors({
+          email: 'Email ou senha incorretos',
+          senha: 'Email ou senha incorretos'
+        });
+      } else if (errorMessage.includes('encontrado') || errorMessage.includes('exist')) {
+        setErrors({
+          email: 'Email não encontrado'
+        });
+      } else {
+        Alert.alert("Erro", errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -69,29 +149,67 @@ export default function Login() {
 
           {/* Formulário */}
           <View style={styles.formContainer}>
-            <View style={styles.inputGroup}>
-              <MaterialIcons name="email" size={20} color="#007AFF" style={styles.inputIcon} />
-              <TextInput
-                placeholder="Email"
-                style={styles.input}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={email}
-                onChangeText={setEmail}
-                placeholderTextColor="#8E8E93"
-              />
+            {/* Campo Email */}
+            <View>
+              <View style={[
+                styles.inputGroup, 
+                errors.email && styles.inputError
+              ]}>
+                <MaterialIcons 
+                  name="email" 
+                  size={20} 
+                  color={errors.email ? "#FF3B30" : "#007AFF"} 
+                  style={styles.inputIcon} 
+                />
+                <TextInput
+                  placeholder="Email"
+                  style={styles.input}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  value={email}
+                  onChangeText={(value) => handleFieldChange('email', value)}
+                  onBlur={() => handleFieldBlur('email', email)}
+                  placeholderTextColor="#8E8E93"
+                />
+              </View>
+              {errors.email ? (
+                <View style={styles.errorContainer}>
+                  <MaterialIcons name="error-outline" size={14} color="#FF3B30" />
+                  <Text style={styles.errorText}>{errors.email}</Text>
+                </View>
+              ) : null}
             </View>
 
-            <View style={styles.inputGroup}>
-              <MaterialIcons name="lock" size={20} color="#007AFF" style={styles.inputIcon} />
-              <TextInput
-                placeholder="Senha"
-                style={styles.input}
-                secureTextEntry
-                value={senha}
-                onChangeText={setSenha}
-                placeholderTextColor="#8E8E93"
-              />
+            {/* Campo Senha */}
+            <View>
+              <View style={[
+                styles.inputGroup, 
+                errors.senha && styles.inputError
+              ]}>
+                <MaterialIcons 
+                  name="lock" 
+                  size={20} 
+                  color={errors.senha ? "#FF3B30" : "#007AFF"} 
+                  style={styles.inputIcon} 
+                />
+                <TextInput
+                  placeholder="Senha"
+                  style={styles.input}
+                  secureTextEntry
+                  value={senha}
+                  onChangeText={(value) => handleFieldChange('senha', value)}
+                  onBlur={() => handleFieldBlur('senha', senha)}
+                  placeholderTextColor="#8E8E93"
+                  onSubmitEditing={handleLogin} // Permite submeter com Enter
+                />
+              </View>
+              {errors.senha ? (
+                <View style={styles.errorContainer}>
+                  <MaterialIcons name="error-outline" size={14} color="#FF3B30" />
+                  <Text style={styles.errorText}>{errors.senha}</Text>
+                </View>
+              ) : null}
             </View>
 
             <TouchableOpacity
@@ -195,7 +313,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    marginBottom: 16,
+    marginBottom: 8,
     paddingHorizontal: 16,
     shadowColor: '#007AFF',
     shadowOffset: { width: 0, height: 2 },
@@ -205,6 +323,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(0, 122, 255, 0.1)',
   },
+  inputError: {
+    borderColor: '#FF3B30',
+    shadowColor: '#FF3B30',
+    shadowOpacity: 0.1,
+  },
   inputIcon: {
     marginRight: 12,
   },
@@ -213,6 +336,18 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     fontSize: 16,
     color: '#1C1C1E',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    marginLeft: 8,
+    gap: 4,
+  },
+  errorText: {
+    color: '#FF3B30',
+    fontSize: 12,
+    fontWeight: '500',
   },
   button: {
     backgroundColor: '#007AFF',

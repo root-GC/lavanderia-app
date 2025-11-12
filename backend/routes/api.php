@@ -32,3 +32,8 @@ Route::middleware('auth:sanctum')->get('/pedidos', [PedidoController::class, 'in
 
 Route::middleware('auth:sanctum')->delete('/pedidos/{id}', [PedidoController::class, 'destroy']);
 
+
+// routes/api.php
+Route::middleware('auth:sanctum')->group(function () {
+    Route::resource('user', UserController::class); // rota para edição
+});

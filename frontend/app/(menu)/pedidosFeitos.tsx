@@ -10,6 +10,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View
 } from "react-native";
@@ -31,9 +32,11 @@ interface Pedido {
 
 export default function PedidosFeitos() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [pedidosFiltrados, setPedidosFiltrados] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedPedido, setSelectedPedido] = useState<Pedido | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // filtros
   const [filtroTipo, setFiltroTipo] = useState<string | null>(null);
@@ -50,6 +53,7 @@ export default function PedidosFeitos() {
       if (filtroServico) query += `&servico=${filtroServico}`;
       const response = await api.get(query);
       setPedidos(response.data.pedidos || []);
+      setPedidosFiltrados(response.data.pedidos || []);
     } catch (error) {
       console.log("Erro ao buscar pedidos:", error);
     } finally {
@@ -66,8 +70,27 @@ export default function PedidosFeitos() {
     fetchPedidos();
   }, [filtroTipo, filtroEstado, filtroServico]);
 
+  // Filtra pedidos baseado na pesquisa
+  useEffect(() => {
+    if (searchQuery.trim() === "") {
+      setPedidosFiltrados(pedidos);
+    } else {
+      const query = searchQuery.toLowerCase().trim();
+      const filtered = pedidos.filter(pedido => 
+        pedido.id.toString().includes(query) ||
+        pedido.tipo.toLowerCase().includes(query) ||
+        pedido.estado.toLowerCase().includes(query) ||
+        pedido.servicos_adicionais.some(servico => 
+          servico.toLowerCase().includes(query)
+        )
+      );
+      setPedidosFiltrados(filtered);
+    }
+  }, [searchQuery, pedidos]);
+
   const deletePedido = async (id: number) => {
     setPedidos(prev => prev.filter(p => p.id !== id));
+    setPedidosFiltrados(prev => prev.filter(p => p.id !== id));
     try {
       await api.delete(`/pedidos/${id}`);
     } catch (error) {
@@ -106,6 +129,19 @@ export default function PedidosFeitos() {
     }
   };
 
+  const getTipoIcon = (tipo: string) => {
+    switch(tipo.toLowerCase()) {
+      case 'normal':
+        return 'shirt-outline';
+      case 'delicada':
+        return 'flower-outline';
+      case 'seco':
+        return 'sunny-outline';
+      default:
+        return 'shirt-outline';
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-PT', {
       day: '2-digit',
@@ -114,6 +150,17 @@ export default function PedidosFeitos() {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const clearSearch = () => {
+    setSearchQuery("");
+  };
+
+  const clearAllFilters = () => {
+    setFiltroTipo(null);
+    setFiltroEstado(null);
+    setFiltroServico(null);
+    setSearchQuery("");
   };
 
   const renderItem = ({ item }: { item: Pedido }) => (
@@ -128,7 +175,10 @@ export default function PedidosFeitos() {
           </View>
         </View>
         
-        <Text style={styles.tipoText}>{item.tipo}</Text>
+        <View style={styles.tipoContainer}>
+          <Ionicons name={getTipoIcon(item.tipo)} size={16} color="#007AFF" />
+          <Text style={styles.tipoText}>{item.tipo}</Text>
+        </View>
         
         <View style={styles.servicosContainer}>
           {item.servicos_adicionais?.map((servico, index) => (
@@ -182,6 +232,8 @@ export default function PedidosFeitos() {
     );
   }
 
+  const hasActiveFilters = filtroTipo || filtroEstado || filtroServico || searchQuery;
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient
@@ -200,9 +252,36 @@ export default function PedidosFeitos() {
             </LinearGradient>
           </View>
 
+          {/* BARRA DE PESQUISA */}
+          <View style={styles.searchContainer}>
+            <View style={styles.searchInputContainer}>
+              <Ionicons name="search-outline" size={20} color="#8E8E93" />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Pesquisar pedidos..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholderTextColor="#8E8E93"
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={clearSearch}>
+                  <Ionicons name="close-circle" size={20} color="#8E8E93" />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
           {/* FILTROS */}
           <View style={styles.filtrosContainer}>
-            <Text style={styles.filtrosTitle}>Filtrar por:</Text>
+            <View style={styles.filtrosHeader}>
+              <Text style={styles.filtrosTitle}>Filtrar por:</Text>
+              {hasActiveFilters && (
+                <TouchableOpacity style={styles.clearFiltersButton} onPress={clearAllFilters}>
+                  <Ionicons name="close-circle" size={16} color="#FF3B30" />
+                  <Text style={styles.clearFiltersText}>Limpar</Text>
+                </TouchableOpacity>
+              )}
+            </View>
             <ScrollView 
               horizontal 
               showsHorizontalScrollIndicator={false}
@@ -226,6 +305,14 @@ export default function PedidosFeitos() {
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
+                  style={[styles.filterButton, filtroTipo === "seco" && styles.filterActive]} 
+                  onPress={() => setFiltroTipo(filtroTipo === "seco" ? null : "seco")}
+                >
+                  <Ionicons name="sunny-outline" size={16} color={filtroTipo === "seco" ? "#FFFFFF" : "#007AFF"} />
+                  <Text style={[styles.filterText, filtroTipo === "seco" && styles.filterTextActive]}>Seco</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
                   style={[styles.filterButton, filtroEstado === "pendente" && styles.filterActive]} 
                   onPress={() => setFiltroEstado(filtroEstado === "pendente" ? null : "pendente")}
                 >
@@ -240,19 +327,43 @@ export default function PedidosFeitos() {
                   <Ionicons name="checkmark-circle-outline" size={16} color={filtroEstado === "concluído" ? "#FFFFFF" : "#34C759"} />
                   <Text style={[styles.filterText, filtroEstado === "concluído" && styles.filterTextActive]}>Concluído</Text>
                 </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={[styles.filterButton, filtroEstado === "lavando" && styles.filterActive]} 
+                  onPress={() => setFiltroEstado(filtroEstado === "lavando" ? null : "lavando")}
+                >
+                  <Ionicons name="water-outline" size={16} color={filtroEstado === "lavando" ? "#FFFFFF" : "#007AFF"} />
+                  <Text style={[styles.filterText, filtroEstado === "lavando" && styles.filterTextActive]}>Lavando</Text>
+                </TouchableOpacity>
               </View>
             </ScrollView>
           </View>
 
-          {pedidos.length === 0 ? (
+          {pedidosFiltrados.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="file-tray-outline" size={64} color="#C7C7CC" />
-              <Text style={styles.emptyTitle}>Nenhum pedido encontrado</Text>
-              <Text style={styles.emptyText}>Seus pedidos aparecerão aqui</Text>
+              <Ionicons 
+                name={hasActiveFilters ? "filter-outline" : "file-tray-outline"} 
+                size={64} 
+                color="#C7C7CC" 
+              />
+              <Text style={styles.emptyTitle}>
+                {hasActiveFilters ? "Nenhum pedido encontrado" : "Nenhum pedido encontrado"}
+              </Text>
+              <Text style={styles.emptyText}>
+                {hasActiveFilters 
+                  ? "Tente ajustar sua pesquisa ou filtros" 
+                  : "Seus pedidos aparecerão aqui"
+                }
+              </Text>
+              {hasActiveFilters && (
+                <TouchableOpacity style={styles.clearSearchButton} onPress={clearAllFilters}>
+                  <Text style={styles.clearSearchText}>Limpar filtros</Text>
+                </TouchableOpacity>
+              )}
             </View>
           ) : (
             <FlatList
-              data={pedidos}
+              data={pedidosFiltrados}
               keyExtractor={(item) => item.id.toString()}
               renderItem={renderItem}
               showsVerticalScrollIndicator={false}
@@ -286,11 +397,15 @@ export default function PedidosFeitos() {
                     </View>
                     <View style={styles.detailRow}>
                       <Text style={styles.detailLabel}>Tipo:</Text>
-                      <Text style={styles.detailValue}>{selectedPedido.tipo}</Text>
+                      <View style={styles.tipoContainer}>
+                        <Ionicons name={getTipoIcon(selectedPedido.tipo)} size={16} color="#007AFF" />
+                        <Text style={styles.detailValue}>{selectedPedido.tipo}</Text>
+                      </View>
                     </View>
                     <View style={styles.detailRow}>
                       <Text style={styles.detailLabel}>Estado:</Text>
                       <View style={[styles.estadoBadge, { backgroundColor: getEstadoColor(selectedPedido.estado) }]}>
+                        <Ionicons name={getEstadoIcon(selectedPedido.estado)} size={14} color="#FFFFFF" />
                         <Text style={styles.estadoText}>{selectedPedido.estado}</Text>
                       </View>
                     </View>
@@ -388,15 +503,59 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.8)",
     marginTop: 5,
   },
+  // Barra de Pesquisa
+  searchContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 2,
+    borderColor: '#E5E5EA',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 12,
+    marginRight: 12,
+    fontSize: 16,
+    color: '#1C1C1E',
+  },
   filtrosContainer: {
     paddingHorizontal: 20,
     marginBottom: 20,
+  },
+  filtrosHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   filtrosTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1C1C1E',
-    marginBottom: 12,
+  },
+  clearFiltersButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  clearFiltersText: {
+    fontSize: 14,
+    color: '#FF3B30',
+    fontWeight: '500',
   },
   filtrosScroll: {
     flexGrow: 0,
@@ -478,11 +637,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
+  tipoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
   tipoText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#007AFF',
-    marginBottom: 8,
   },
   servicosContainer: {
     flexDirection: 'row',
@@ -563,6 +727,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#8E8E93',
     textAlign: 'center',
+    marginBottom: 16,
+  },
+  clearSearchButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  clearSearchText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 14,
   },
   modalOverlay: { 
     flex: 1, 
