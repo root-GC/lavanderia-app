@@ -1,18 +1,18 @@
+import { MaterialIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { 
-  Alert, 
-  SafeAreaView, 
-  StyleSheet, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  View,
+import {
+  ActivityIndicator,
+  Alert,
+  SafeAreaView,
   ScrollView,
-  ActivityIndicator
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { MaterialIcons } from "@expo/vector-icons";
 import { registerUser } from "../../api/userApi";
 
 interface ValidationErrors {
@@ -48,8 +48,8 @@ export default function Signup() {
       
       case 'telefone':
         if (!value.trim()) return 'Telefone é obrigatório';
-        const phoneRegex = /^[9][0-9]{8}$/;
-        if (!phoneRegex.test(value.replace(/\s/g, ''))) return 'Telefone deve ter 9 dígitos começando com 9';
+        const phoneRegex = /^[0-9]{9}$/;
+        if (!phoneRegex.test(value.replace(/\s/g, ''))) return 'Telefone deve ter 9 dígitos';
         return '';
       
       case 'endereco':

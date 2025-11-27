@@ -49,7 +49,7 @@ const EditProfile = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.put("/update", { name, email, telefone, endereco });
+      await api.post("/update", { name, email, telefone, endereco });
       Alert.alert("Sucesso", "Dados atualizados com sucesso!");
       router.back(); // volta para o perfil
     } catch (error: any) {

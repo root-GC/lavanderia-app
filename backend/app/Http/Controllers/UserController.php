@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class UserController extends Controller
 {
@@ -62,6 +63,8 @@ class UserController extends Controller
  */
 public function update(Request $request)
 {
+    Log::info('Dados recebidos para update:', $request->all());
+
     $user = Auth::user();
 
     $validated = $request->validate([
@@ -71,7 +74,11 @@ public function update(Request $request)
         'endereco' => 'nullable|string|max:255',
     ]);
 
+    //$user->update($validated);
+
+    Log::info('Antes do update', ['user' => $user->toArray()]);
     $user->update($validated);
+    Log::info('Depois do update', ['user' => $user->toArray()]);
 
     return response()->json([
         'message' => 'Dados atualizados com sucesso!',
