@@ -35,3 +35,11 @@ Route::middleware('auth:sanctum')->get('/pedidos', [PedidoController::class, 'in
 Route::middleware('auth:sanctum')->delete('/pedidos/{id}', [PedidoController::class, 'destroy']);
 
 
+//Route::middleware('auth:sanctum')->group(function () {
+   // Route::post('/pedidos', [PedidoController::class, 'store']); // usuário envia pedido cru
+   // Route::get('/pedidos', [PedidoController::class, 'index']); // listar
+   // Route::post('/pedidos/{id}/responder', [PedidoController::class, 'responderFactura']); // aceitar/recusar
+//});
+
+// Rotas admin (proteger com middleware 'admin')
+ //   Route::post('/admin/pedidos/{id}/avaliar', [PedidoController::class, 'avaliar']); // admin avalia (peso + preços)

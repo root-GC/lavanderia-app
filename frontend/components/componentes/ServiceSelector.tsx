@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const tipos = [
   { label: "Normal (50 MT/kg)", value: "normal" },
@@ -6,9 +6,11 @@ const tipos = [
   { label: "A Seco (120 MT/kg)", value: "seco" },
 ];
 
+//type TipoLavagem = "normal" | "delicada" | "seco";
+
 interface Props {
-  tipo: string;
-  setTipo: (value: string) => void;
+  tipo: "normal" | "delicada" | "seco";
+  setTipo: React.Dispatch<React.SetStateAction<"normal" | "delicada" | "seco">>;
 }
 
 export default function ServiceSelector({ tipo, setTipo }: Props) {
@@ -18,7 +20,7 @@ export default function ServiceSelector({ tipo, setTipo }: Props) {
       {tipos.map((t) => (
         <TouchableOpacity
           key={t.value}
-          onPress={() => setTipo(t.value)}
+          onPress={() => setTipo(t.value as "normal" | "delicada" | "seco")}
           style={[
             styles.button,
             tipo === t.value && { borderColor: "blue", backgroundColor: "#e6f0ff" },
