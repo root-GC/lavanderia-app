@@ -20,7 +20,8 @@ class Pedido extends Model
         'subtotal',
         'iva',
         'total',
-        'estado'
+        'estado',
+        'imagem_original'
     ];
 
     protected $casts = [

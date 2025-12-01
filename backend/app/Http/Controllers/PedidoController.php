@@ -72,8 +72,28 @@ public function index(Request $request)
     }
 
     // Filtro por serviços adicionais
-    if ($request->has('servico') && $request->servico != '') {
-        $query->whereJsonContains('servicos_adicionais', $request->servico);
+   // if ($request->has('servico') && $request->servico != '') {
+    //    $query->whereJsonContains('servicos_adicionais', $request->servico);
+    //}
+
+    // Filtro por serviços adicionais
+    if ($request->has('servico')) {
+
+        // limpar arrays vazios: ["", ""] → []
+        $servico = $request->servico;
+
+        if (is_array($servico)) {
+            // remove strings vazias
+            $servico = array_filter($servico, fn($v) => trim($v) !== '');
+        }
+
+        // só aplicar filtro se sobrou algo real
+        if (!empty($servico)) {
+            // se for array, podes aplicar vários
+            foreach ($servico as $s) {
+                $query->whereJsonContains('servicos_adicionais', $s);
+            }
+        }
     }
 
     $pedidos = $query->get();
@@ -85,6 +105,8 @@ public function index(Request $request)
 //         }
 //         return $pedido;
 //     });
+// Log do que será enviado
+    Log::info('PEDIDOS ENVIADOS PARA O FRONTEND:', $pedidos->toArray());
 
     return response()->json(['pedidos' => $pedidos]);
 }
@@ -143,30 +165,60 @@ public function destroy($id)
 }
 
 
+public function store(Request $request)
+{
+    // Validação
+    $request->validate([
+        'imagem' => 'required|file|image', // máximo 5MB
+        'tipo' => 'required|in:normal,delicada,seco',
+        'servicos_adicionais' => 'nullable|array',
+        'imagem_local' => 'nullable|string', // URI do dispositivo
+    ]);
 
-  // Recebe o pedido cru do frontend
-   /* public function store(Request $request)
-    {
-        Log::info('📦 Dados recebidos no PedidoController:', $request->all());
+    Log::info('📌 Request recebido', $request->all());
 
-        $request->validate([
-            'imagem' => 'required|string',
-            'tipo' => 'required|in:normal,delicada,seco',
-            'servicos_adicionais' => 'nullable|array',
+    if ($request->hasFile('imagem')) {
+        $file = $request->file('imagem');
+
+        // Caminho onde o Laravel guardou
+        $pathStorage = $file->store('pedidos', 'public');
+
+        // URI original do dispositivo
+        $imagemLocal = $request->input('imagem_local');
+
+        Log::info('📦 Imagem recebida do React:', [
+            'imagem do celular' => $imagemLocal,
+            'path_storage' => $pathStorage,
         ]);
 
         $pedido = Pedido::create([
             'user_id' => Auth::id() ?? $request->user_id,
-            'imagem' => $request->imagem,
+            'imagem' => $pathStorage,          // caminho no storage
+            'imagem_original' => $imagemLocal, // url do dispositivo
             'tipo' => $request->tipo,
             'servicos_adicionais' => $request->servicos_adicionais ?? [],
-            'estado' => 'Aguardando Avaliação'
+            'estado' => 'Aguardando Avaliação',
+            'peso' => 0,
+            'subtotal' => 0,
+            'iva' => 0,
+            'total' => 0,
         ]);
 
-        return response()->json(['success' => true, 'pedido' => $pedido], 201);
-    }*/
+        return response()->json([
+            'success' => true,
+            'pedido' => $pedido,
+            'url_storage' => asset('storage/' . $pathStorage),
+            'imagem_local' => $imagemLocal
+        ], 201);
 
+    } else {
+        return response()->json(['error' => 'Imagem inválida'], 422);
+    }
+}
 
+ 
+
+/*
     public function store(Request $request)
     {
         // Log dos dados recebidos
@@ -182,23 +234,61 @@ public function destroy($id)
         // Guarda a imagem na pasta 'pedidos' dentro de storage/app/public
         //$path = $request->file('imagem')->store('pedidos', 'public');
 
+        // if ($request->hasFile('imagem')) {
+        //     $path = $request->file('imagem')->store('pedidos', 'public');
+        //      Log::info('📦 Request tem imagem:', $request->all());
+        // } else {
+        //      Log::info('📦 Request nao tem:', $request->all());
+        //     return response()->json(['error' => 'Imagem inválida'], 422);
+        // }
+
+        // Log::info('📦 Dados processados no PedidoController:', $request->all());
+        // // Criação do pedido
+        // $pedido = Pedido::create([
+        //     'user_id' => Auth::id() ?? $request->user_id,
+        //     'imagem' => $path, // guarda apenas o caminho
+        //     'tipo' => $request->tipo,
+        //     'servicos_adicionais' => $request->servicos_adicionais ?? [],
+        //     'estado' => 'Aguardando Avaliação',
+
+        //       // Campos numéricos forçados
+        //     'peso' => 0,
+        //     'subtotal' => 0,
+        //     'iva' => 0,
+        //     'total' => 0,
+        // ]);
+
         if ($request->hasFile('imagem')) {
-            $path = $request->file('imagem')->store('pedidos', 'public');
-             Log::info('📦 Request tem imagem:', $request->all());
+            $file = $request->file('imagem');
+
+            // Nome original enviado pelo cliente
+            $nomeOriginal = $file->getClientOriginalName();
+
+            // Caminho onde o Laravel guardou
+            $path = $file->store('pedidos', 'public');
+
+            Log::info('📦 Imagem recebida:', [
+                'nome_original' => $nomeOriginal,
+                'path_storage' => $path
+            ]);
         } else {
-             Log::info('📦 Request nao tem:', $request->all());
             return response()->json(['error' => 'Imagem inválida'], 422);
         }
 
-        Log::info('📦 Dados processados no PedidoController:', $request->all());
-        // Criação do pedido
         $pedido = Pedido::create([
             'user_id' => Auth::id() ?? $request->user_id,
-            'imagem' => $path, // guarda apenas o caminho
+            'imagem' => $path,                             // caminho armazenado
+            'imagem_original' => $nomeOriginal,            // 💥 novo campo
             'tipo' => $request->tipo,
             'servicos_adicionais' => $request->servicos_adicionais ?? [],
             'estado' => 'Aguardando Avaliação',
+
+            'peso' => 0,
+            'subtotal' => 0,
+            'iva' => 0,
+            'total' => 0,
         ]);
+
 
         // Retorna resposta JSON
         return response()->json([
@@ -206,7 +296,7 @@ public function destroy($id)
             'pedido' => $pedido,
             'imagem_url' => asset('storage/' . $path) // URL completa para exibir na view
         ], 201);
-    }
+    }*/
 
     // Lista pedidos (filtrar por user_id ou admin)
     // public function index(Request $request)
@@ -269,6 +359,42 @@ public function destroy($id)
     public function formAvaliar($id)
     {
         $pedido = Pedido::findOrFail($id);
-        return view('admin.pedidos.avaliar', compact('pedido'));
+        return view('admin.pedidos', compact('pedido'));
     }
+
+    // PedidoController.php
+    public function verFactura($id)
+    {
+        $pedido = Pedido::findOrFail($id);
+        return view('admin.pedidos', compact('pedido'));
+    }
+    public function update(Request $request, $id) {
+        $pedido = Pedido::findOrFail($id);
+        $pedido->estado = $request->estado;
+        $pedido->save();
+
+        return response()->json(['success' => true, 'pedido' => $pedido]);
+    }
+
+    public function atualizarEstado(Request $request, $id) {
+    $pedido = Pedido::findOrFail($id);
+    $pedido->estado = $request->estado;
+    $pedido->save();
+
+    return response()->json(['success' => true, 'estado' => $pedido->estado]);
+}
+
+public function pedidosValidos(Request $request)
+{
+    $userId = $request->query('user_id');
+
+    $estadosValidos = ['confirmado', 'Lavado', 'recusado'];
+
+    $pedidos = Pedido::where('user_id', $userId)
+                     ->whereIn('estado', $estadosValidos)
+                     ->get();
+
+    return response()->json(['pedidos' => $pedidos]);
+}
+
 }

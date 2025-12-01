@@ -2,14 +2,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
-     Alert,
-     KeyboardAvoidingView,
-     Platform,
-     ScrollView,
-     StyleSheet,
-     Text,
-     TouchableOpacity,
-     View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { criarPedido } from "../../api/userApi";
@@ -24,7 +24,68 @@ export default function Pedidos() {
   const [imagemRoupa, setImagemRoupa] = useState<string | null>(null); // Base64
   const [enviando, setEnviando] = useState(false);
 
-  const handleEnviarPedido = async () => {
+//   const handleEnviarPedido = async () => {
+//   if (!imagemRoupa) {
+//     Alert.alert("Erro", "Por favor, selecione uma imagem do pedido.");
+//     return;
+//   }
+
+//   setEnviando(true);
+
+//   try {
+//     const servicos = [
+//       secagem && "Secagem",
+//       passagem && "Passagem",
+//       perfumaria && "Perfumaria",
+//     ].filter(Boolean) as string[];
+
+//     // Identificar o tipo MIME com base na extensão
+//     const getMimeType = (uri: string) => {
+//       if (uri.endsWith('.png')) return 'image/png';
+//       if (uri.endsWith('.jpg') || uri.endsWith('.jpeg')) return 'image/jpeg';
+//       return 'image/jpeg'; // fallback
+//     };
+
+//     // Obter o nome do ficheiro a partir do URI
+//     const getFileName = (uri: string) => {
+//       const parts = uri.split('/');
+//       return parts[parts.length - 1] || 'pedido.jpg';
+//     };
+
+//     // Preparar FormData
+//    const formData = new FormData();
+//   formData.append('imagem', {
+//     uri: imagemRoupa,
+//     type: getMimeType(imagemRoupa),
+//     name: getFileName(imagemRoupa),
+//   } as any);
+//   formData.append('tipo', tipo);
+//   formData.append('imagem_local', imagemRoupa); // URI original do dispositivo
+  
+
+//   servicos.forEach((servico, idx) => {
+//     formData.append(`servicos_adicionais[${idx}]`, servico);
+//   });
+
+//   await criarPedido(formData);
+
+//     Alert.alert("Pedido Enviado", "O seu pedido foi enviado. Aguardando avaliação.");
+
+//     // Reset minimal
+//     setImagemRoupa(null);
+//     setSecagem(false);
+//     setPassagem(false);
+//     setPerfumaria(false);
+//     setTipo("normal");
+
+//   } catch (err) {
+//     console.error("Erro ao enviar pedido", err);
+//     Alert.alert("Erro", "Não foi possível enviar o pedido.");
+//   } finally {
+//     setEnviando(false);
+//   }
+// };
+const handleEnviarPedido = async () => {
   if (!imagemRoupa) {
     Alert.alert("Erro", "Por favor, selecione uma imagem do pedido.");
     return;
@@ -33,20 +94,21 @@ export default function Pedidos() {
   setEnviando(true);
 
   try {
+    // Serviços selecionados
     const servicos = [
       secagem && "Secagem",
       passagem && "Passagem",
       perfumaria && "Perfumaria",
     ].filter(Boolean) as string[];
 
-    // Identificar o tipo MIME com base na extensão
+    // Tipo MIME baseado na extensão
     const getMimeType = (uri: string) => {
       if (uri.endsWith('.png')) return 'image/png';
       if (uri.endsWith('.jpg') || uri.endsWith('.jpeg')) return 'image/jpeg';
       return 'image/jpeg'; // fallback
     };
 
-    // Obter o nome do ficheiro a partir do URI
+    // Nome do ficheiro a partir do URI
     const getFileName = (uri: string) => {
       const parts = uri.split('/');
       return parts[parts.length - 1] || 'pedido.jpg';
@@ -54,16 +116,29 @@ export default function Pedidos() {
 
     // Preparar FormData
     const formData = new FormData();
+
+    // Anexar imagem para upload
     formData.append('imagem', {
-      uri: imagemRoupa,             // URI real do ficheiro
+      uri: imagemRoupa,
       type: getMimeType(imagemRoupa),
       name: getFileName(imagemRoupa),
     } as any);
+
+    // DEBUG: ver a URI antes de enviar
+    console.log("📌 URI da imagem local:", imagemRoupa);
+
+    // Enviar URI original do dispositivo também
+    formData.append('imagem_local', imagemRoupa);
+
+    // Tipo do pedido
     formData.append('tipo', tipo);
+
+    // Serviços adicionais
     servicos.forEach((servico, idx) => {
       formData.append(`servicos_adicionais[${idx}]`, servico);
     });
 
+    // Chamar API para criar pedido
     await criarPedido(formData);
 
     Alert.alert("Pedido Enviado", "O seu pedido foi enviado. Aguardando avaliação.");
@@ -74,7 +149,6 @@ export default function Pedidos() {
     setPassagem(false);
     setPerfumaria(false);
     setTipo("normal");
-
   } catch (err) {
     console.error("Erro ao enviar pedido", err);
     Alert.alert("Erro", "Não foi possível enviar o pedido.");

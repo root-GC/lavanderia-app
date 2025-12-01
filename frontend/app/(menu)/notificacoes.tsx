@@ -17,10 +17,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import api, { getUser } from "../../api/userApi";
 
+type Estado = 'confirmado' | 'lavado' | 'recusado';
+
+
 interface Notificacao {
   id: number;
   pedido: string;
-  estado: string;
+  estado: Estado;
 }
 
 export default function Notificacoes() {
@@ -28,19 +31,21 @@ export default function Notificacoes() {
   const [notificacoesFiltradas, setNotificacoesFiltradas] = useState<Notificacao[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filtroEstado, setFiltroEstado] = useState<string | null>(null);
+  const [filtroEstado, setFiltroEstado] = useState<Estado | null>(null);
   const fadeAnim = useState(new Animated.Value(0))[0];
   const navigation = useNavigation();
+ 
+/// const notificacoesFiltradas = dados?.notificacoesFiltradas || [];
 
   const fetchNotificacoes = async () => {
     try {
       const user = await getUser();
-      const response = await api.get(`/pedidos?user_id=${user.id}`);
+      const response = await api.get(`/pedidos-validos?user_id=${user.id}`);
       
       const notifs: Notificacao[] = response.data.pedidos.map((p: any) => ({
         id: p.id,
         pedido: p.tipo,
-        estado: p.estado,
+        estado: p.estado.toLowerCase() as Estado,
       }));
       
       setNotificacoes(notifs);
@@ -58,10 +63,12 @@ export default function Notificacoes() {
       setRefreshing(false);
     }
   };
+
   useEffect(() => {
     aplicarFiltro(notificacoes, filtroEstado);
   }, [notificacoes, filtroEstado]);
-  const aplicarFiltro = (notificacoes: Notificacao[], estado: string | null) => {
+
+  const aplicarFiltro = (notificacoes: Notificacao[], estado: Estado | null) => {
     if (!estado) {
       setNotificacoesFiltradas(notificacoes);
     } else {
@@ -75,7 +82,7 @@ export default function Notificacoes() {
     fetchNotificacoes();
   };
 
-  const handleFiltroEstado = (estado: string) => {
+  const handleFiltroEstado = (estado: Estado) => {
     const novoFiltro = filtroEstado === estado ? null : estado;
     setFiltroEstado(novoFiltro);
     aplicarFiltro(notificacoes, novoFiltro);
@@ -87,38 +94,51 @@ export default function Notificacoes() {
     return () => clearInterval(interval);
   }, []);
 
-  const getEstadoIcon = (estado: string) => {
-    switch(estado.toLowerCase()) {
-      case 'pendente':
+  const getEstadoIcon = (estado: Estado) => {
+    switch(estado) {
+      case 'confirmado':
         return 'time-outline';
-      case 'concluído':
+      case 'lavado':
         return 'checkmark-done-circle-outline';
-      default:
-        return 'notifications-outline';
+      case 'recusado':
+        return 'close-circle-outline';
     }
   };
 
-  const getEstadoColor = (estado: string) => {
-    switch(estado.toLowerCase()) {
-      case 'pendente':
-        return '#FF6B6B';
-      case 'concluído':
+  const getEstadoColor = (estado: Estado) => {
+    switch(estado) {
+      case 'confirmado':
+        return '#FF9500';
+      case 'lavado':
         return '#34C759';
-      default:
-        return '#8E8E93';
+      case 'recusado':
+        return '#FF3B30';
+    }
+  };
+// Adicione esta linha antes de usar estadosValidos
+
+  const getEstadoGradient = (estado: Estado): readonly [string, string] => {
+    switch(estado) {
+      case 'confirmado':
+        return ['#FFF8F0', '#FFEDD5'];
+      case 'lavado':
+        return ['#F0FFF4', '#E6FFEE'];
+      case 'recusado':
+        return ['#FFF5F5', '#FFE5E5'];
     }
   };
 
-  const getEstadoGradient = (estado: string): readonly [string, string] => {
-    switch(estado.toLowerCase()) {
-      case 'pendente':
-        return ['#FFF5F5', '#FFE5E5'];
-      case 'concluído':
-        return ['#F0FFF4', '#E6FFEE'];
-      default:
-        return ['#F8F9FA', '#F1F3F4'];
+  const getEstadoLabel = (estado: Estado) => {
+    switch(estado) {
+      case 'confirmado':
+        return 'Confirmado';
+      case 'lavado':
+        return 'Lavado';
+      case 'recusado':
+        return 'Recusado';
     }
   };
+
   if (loading) {
     return (
       <View style={[styles.safeArea, styles.centerContent]}>
@@ -133,11 +153,11 @@ export default function Notificacoes() {
       </View>
     );
   }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <RNStatusBar backgroundColor="#007AFF" barStyle="light-content" />
       
-      {/* Header Azul com Gradiente */}
       {/* Header Azul com Gradiente */}
       <LinearGradient
         colors={['#007AFF', '#0056CC']}
@@ -160,23 +180,23 @@ export default function Notificacoes() {
           <View style={styles.statItem}>
             <Ionicons name="time-outline" size={16} color="rgba(255,255,255,0.8)" />
             <Text style={styles.statNumber}>
-              {notificacoes.filter(n => n.estado === 'Pendente').length}
+              {notificacoes.filter(n => n.estado === 'confirmado').length}
             </Text>
-            <Text style={styles.statLabel}>Pendentes</Text>
+            <Text style={styles.statLabel}>Confirmados</Text>
           </View>
           <View style={styles.statItem}>
             <Ionicons name="checkmark-done-outline" size={16} color="rgba(255,255,255,0.8)" />
             <Text style={styles.statNumber}>
-              {notificacoes.filter(n => n.estado === 'Concluído').length}
+              {notificacoes.filter(n => n.estado === 'lavado').length}
             </Text>
-            <Text style={styles.statLabel}>Concluídos</Text>
+            <Text style={styles.statLabel}>Lavados</Text>
           </View>
           <View style={styles.statItem}>
-            <Ionicons name="list-outline" size={16} color="rgba(255,255,255,0.8)" />
+            <Ionicons name="close-circle-outline" size={16} color="rgba(255,255,255,0.8)" />
             <Text style={styles.statNumber}>
-              {notificacoes.length}
+              {notificacoes.filter(n => n.estado === 'recusado').length}
             </Text>
-            <Text style={styles.statLabel}>Total</Text>
+            <Text style={styles.statLabel}>Recusados</Text>
           </View>
         </View>
       </LinearGradient>
@@ -189,25 +209,33 @@ export default function Notificacoes() {
           contentContainerStyle={styles.filtrosContent}
         >
           <TouchableOpacity 
-            style={[styles.filterButton, filtroEstado === "Pendente" && styles.filterActive]} 
-            onPress={() => handleFiltroEstado("Pendente")}
+            style={[styles.filterButton, filtroEstado === "confirmado" && styles.filterActive]} 
+            onPress={() => handleFiltroEstado("confirmado")}
           >
-            <Ionicons name="time-outline" size={16} color={filtroEstado === "Pendente" ? "#FFFFFF" : "#FF6B6B"} />
-            <Text style={[styles.filterText, filtroEstado === "Pendente" && styles.filterTextActive]}>Pendente</Text>
+            <Ionicons name="time-outline" size={16} color={filtroEstado === "confirmado" ? "#FFFFFF" : "#FF9500"} />
+            <Text style={[styles.filterText, filtroEstado === "confirmado" && styles.filterTextActive]}>Confirmado</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={[styles.filterButton, filtroEstado === "Concluído" && styles.filterActive]} 
-            onPress={() => handleFiltroEstado("Concluído")}
+            style={[styles.filterButton, filtroEstado === "lavado" && styles.filterActive]} 
+            onPress={() => handleFiltroEstado("lavado")}
           >
-            <Ionicons name="checkmark-circle-outline" size={16} color={filtroEstado === "Concluído" ? "#FFFFFF" : "#34C759"} />
-            <Text style={[styles.filterText, filtroEstado === "Concluído" && styles.filterTextActive]}>Concluído</Text>
+            <Ionicons name="checkmark-circle-outline" size={16} color={filtroEstado === "lavado" ? "#FFFFFF" : "#34C759"} />
+            <Text style={[styles.filterText, filtroEstado === "lavado" && styles.filterTextActive]}>Lavado</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.filterButton, filtroEstado === "recusado" && styles.filterActive]} 
+            onPress={() => handleFiltroEstado("recusado")}
+          >
+            <Ionicons name="close-circle-outline" size={16} color={filtroEstado === "recusado" ? "#FFFFFF" : "#FF3B30"} />
+            <Text style={[styles.filterText, filtroEstado === "recusado" && styles.filterTextActive]}>Recusado</Text>
           </TouchableOpacity>
 
           {filtroEstado && (
             <TouchableOpacity 
               style={styles.limparFiltroButton}
-              onPress={() => handleFiltroEstado("")}
+              onPress={() => setFiltroEstado(null)}
             >
               <Ionicons name="close-circle" size={16} color="#8E8E93" />
               <Text style={styles.limparFiltroText}>Limpar</Text>
@@ -235,11 +263,11 @@ export default function Notificacoes() {
               <Ionicons name="notifications-off-outline" size={64} color="#C7C7CC" />
             </View>
             <Text style={styles.emptyTitle}>
-              {filtroEstado ? `Nenhum pedido ${filtroEstado.toLowerCase()}` : 'Nenhuma notificação'}
+              {filtroEstado ? `Nenhum pedido ${filtroEstado}` : 'Nenhuma notificação'}
             </Text>
             <Text style={styles.emptyText}>
               {filtroEstado 
-                ? `Não há pedidos com estado "${filtroEstado}" no momento`
+                ? `Não há pedidos com estado "${getEstadoLabel(filtroEstado)}" no momento`
                 : 'Seus pedidos aparecerão aqui quando forem atualizados'
               }
             </Text>
@@ -287,7 +315,7 @@ export default function Notificacoes() {
                   { backgroundColor: getEstadoColor(n.estado) }
                 ]}>
                   <Text style={styles.estado}>
-                    {n.estado}
+                    {getEstadoLabel(n.estado)}
                   </Text>
                 </View>
               </LinearGradient>

@@ -20,3 +20,7 @@ Route::get('/admin/pedidos/{id}/avaliar', [PedidoController::class, 'formAvaliar
 
 // Recebe avaliação/factura
 Route::post('/admin/pedidos/{id}/avaliar', [PedidoController::class, 'avaliar'])->name('pedidos.avaliar.submit');
+
+Route::get('/admin/pedidos/{id}/factura', [PedidoController::class, 'verFactura'])->name('pedidos.factura');
+
+Route::post('/admin/pedidos/{id}/atualizar-estado', [PedidoController::class, 'atualizarEstado']);

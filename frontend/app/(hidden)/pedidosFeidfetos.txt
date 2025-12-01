@@ -19,7 +19,7 @@ import api, { getUser } from "../../api/userApi";
 
 interface Pedido {
   id: number;
-  imagem_original: string;
+  imagem: string;
   tipo: string;
   servicos_adicionais: string[];
   peso: number;
@@ -141,47 +141,7 @@ export default function PedidosFeitos() {
         return 'shirt-outline';
     }
   };
-const aceitarPedido = async () => {
-  if (!selectedPedido) return;
 
-  try {
-    await api.post(`/pedidos/${selectedPedido.id}`, { estado: "confirmado" });
-
-    // Atualiza localmente o pedido
-    setPedidos(prev => prev.map(p =>
-      p.id === selectedPedido.id ? { ...p, estado: "confirmado" } : p
-    ));
-    setPedidosFiltrados(prev => prev.map(p =>
-      p.id === selectedPedido.id ? { ...p, estado: "confirmado" } : p
-    ));
-
-    // Fecha botões (opcionalmente fecha modal)
-    setSelectedPedido(prev => prev ? { ...prev, estado: "confirmado" } : null);
-  } catch (error) {
-    console.log("Erro ao aceitar pedido:", error);
-  }
-};
-
-const recusarPedido = async () => {
-  if (!selectedPedido) return;
-
-  try {
-    await api.post(`/pedidos/${selectedPedido.id}`, { estado: "recusado" });
-
-    // Atualiza localmente o pedido
-    setPedidos(prev => prev.map(p =>
-      p.id === selectedPedido.id ? { ...p, estado: "recusado" } : p
-    ));
-    setPedidosFiltrados(prev => prev.map(p =>
-      p.id === selectedPedido.id ? { ...p, estado: "recusado" } : p
-    ));
-
-    // Fecha botões
-    setSelectedPedido(prev => prev ? { ...prev, estado: "recusado" } : null);
-  } catch (error) {
-    console.log("Erro ao recusar pedido:", error);
-  }
-};
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-PT', {
       day: '2-digit',
@@ -205,7 +165,7 @@ const recusarPedido = async () => {
 
   const renderItem = ({ item }: { item: Pedido }) => (
     <TouchableOpacity style={styles.card} onPress={() => openModal(item)}>
-      <Image source={{ uri: item.imagem_original }} style={styles.image} />
+      <Image source={{ uri: item.imagem }} style={styles.image} />
       <View style={styles.cardContent}>
         <View style={styles.cardHeader}>
           <Text style={styles.pedidoId}>#{item.id}</Text>
@@ -428,93 +388,155 @@ const recusarPedido = async () => {
               {selectedPedido && (
 
                  <>
-                <Image source={{ uri: selectedPedido.imagem_original}} style={styles.modalImage} />
+    <Image source={{ uri: selectedPedido.imagem }} style={styles.modalImage} />
 
-                {/* Informações comuns */}
-                <View style={styles.detailSection}>
-                  <Text style={styles.sectionTitle}>Informações Gerais</Text>
+    {/* Informações comuns */}
+    <View style={styles.detailSection}>
+      <Text style={styles.sectionTitle}>Informações Gerais</Text>
 
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>ID do Pedido:</Text>
-                    <Text style={styles.detailValue}>#{selectedPedido.id}</Text>
-                  </View>
+      <View style={styles.detailRow}>
+        <Text style={styles.detailLabel}>ID do Pedido:</Text>
+        <Text style={styles.detailValue}>#{selectedPedido.id}</Text>
+      </View>
 
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Tipo:</Text>
-                    <Text style={styles.detailValue}>{selectedPedido.tipo}</Text>
-                  </View>
+      <View style={styles.detailRow}>
+        <Text style={styles.detailLabel}>Tipo:</Text>
+        <Text style={styles.detailValue}>{selectedPedido.tipo}</Text>
+      </View>
 
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Estado:</Text>
-                    <Text style={styles.detailValue}>{selectedPedido.estado}</Text>
-                  </View>
+      <View style={styles.detailRow}>
+        <Text style={styles.detailLabel}>Estado:</Text>
+        <Text style={styles.detailValue}>{selectedPedido.estado}</Text>
+      </View>
 
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Data:</Text>
-                    <Text style={styles.detailValue}>{formatDate(selectedPedido.created_at)}</Text>
-                  </View>
-                </View>
+      <View style={styles.detailRow}>
+        <Text style={styles.detailLabel}>Data:</Text>
+        <Text style={styles.detailValue}>{formatDate(selectedPedido.created_at)}</Text>
+      </View>
+    </View>
 
-                {/* Serviços */}
-                <View style={styles.detailSection}>
-                  <Text style={styles.sectionTitle}>Serviços</Text>
-                  <View style={styles.servicosModal}>
-                    {selectedPedido.servicos_adicionais?.map((servico, index) => (
-                      <View key={index} style={styles.servicoTagModal}>
-                        <Text style={styles.servicoTextModal}>{servico}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
+    {/* Serviços */}
+    <View style={styles.detailSection}>
+      <Text style={styles.sectionTitle}>Serviços</Text>
+      <View style={styles.servicosModal}>
+        {selectedPedido.servicos_adicionais?.map((servico, index) => (
+          <View key={index} style={styles.servicoTagModal}>
+            <Text style={styles.servicoTextModal}>{servico}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
 
-                {/* SE ESTIVER EM AVALIAÇÃO — MOSTRA APENAS BOTÃO EDITAR */}
-                {selectedPedido.estado === "Aguardando Avaliação" && (
-                  <View style={{ marginTop: 20 }}>
-                    <TouchableOpacity style={styles.editButton}>
-                      <Text style={styles.editButtonText}>Editar Pedido</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
+    {/* SE ESTIVER EM AVALIAÇÃO — MOSTRA APENAS BOTÃO EDITAR */}
+    {selectedPedido.estado === "aguardando avaliacao" && (
+      <View style={{ marginTop: 20 }}>
+        <TouchableOpacity style={styles.editButton}>
+          <Text style={styles.editButtonText}>Editar Pedido</Text>
+        </TouchableOpacity>
+      </View>
+    )}
 
-                {/* SE ESTIVER EM CONFIRMAÇÃO — MOSTRA VALORES E OS BOTÕES */}
-                {selectedPedido.estado === "Aguardando Confirmação" && (
-                  <View>
-                    <View style={styles.detailSection}>
-                      <Text style={styles.sectionTitle}>Valores</Text>
+    {/* SE ESTIVER EM CONFIRMAÇÃO — MOSTRA VALORES E OS BOTÕES */}
+    {selectedPedido.estado === "aguardando confirmacao" && (
+      <>
+        <View style={styles.detailSection}>
+          <Text style={styles.sectionTitle}>Valores</Text>
 
-                      <View style={styles.valorRow}>
-                        <Text style={styles.valorLabel}>Peso:</Text>
-                        <Text style={styles.valorValue}>{selectedPedido.peso} kg</Text>
-                      </View>
+          <View style={styles.valorRow}>
+            <Text style={styles.valorLabel}>Peso:</Text>
+            <Text style={styles.valorValue}>{selectedPedido.peso} kg</Text>
+          </View>
 
-                      <View style={styles.valorRow}>
-                        <Text style={styles.valorLabel}>Subtotal:</Text>
-                        <Text style={styles.valorValue}>{selectedPedido.subtotal} MT</Text>
-                      </View>
+          <View style={styles.valorRow}>
+            <Text style={styles.valorLabel}>Subtotal:</Text>
+            <Text style={styles.valorValue}>{selectedPedido.subtotal} MT</Text>
+          </View>
 
-                      <View style={styles.valorRow}>
-                        <Text style={styles.valorLabel}>IVA:</Text>
-                        <Text style={styles.valorValue}>{selectedPedido.iva} MT</Text>
-                      </View>
+          <View style={styles.valorRow}>
+            <Text style={styles.valorLabel}>IVA:</Text>
+            <Text style={styles.valorValue}>{selectedPedido.iva} MT</Text>
+          </View>
 
-                      <View style={[styles.valorRow, styles.totalRow]}>
-                        <Text style={styles.totalLabel}>TOTAL:</Text>
-                        <Text style={styles.totalValue}>{selectedPedido.total} MT</Text>
+          <View style={[styles.valorRow, styles.totalRow]}>
+            <Text style={styles.totalLabel}>TOTAL:</Text>
+            <Text style={styles.totalValue}>{selectedPedido.total} MT</Text>
+          </View>
+        </View>
+
+        <View style={styles.buttonsContainer}>
+          <TouchableOpacity style={styles.acceptButton}>
+            <Text style={styles.acceptText}>Aceitar</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.denyButton}>
+            <Text style={styles.denyText}>Recusar</Text>
+          </TouchableOpacity>
+        </View>
+      </>
+
+/*
+                <>
+                  <Image source={{ uri: selectedPedido.imagem }} style={styles.modalImage} />
+                  
+                  <View style={styles.detailSection}>
+                    <Text style={styles.sectionTitle}>Informações Gerais</Text>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>ID do Pedido:</Text>
+                      <Text style={styles.detailValue}>#{selectedPedido.id}</Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Tipo:</Text>
+                      <View style={styles.tipoContainer}>
+                        <Ionicons name={getTipoIcon(selectedPedido.tipo)} size={16} color="#007AFF" />
+                        <Text style={styles.detailValue}>{selectedPedido.tipo}</Text>
                       </View>
                     </View>
-
-                    <View style={styles.buttonsContainer}>
-                     <TouchableOpacity style={styles.acceptButton} onPress={aceitarPedido}>
-                        <Text style={styles.acceptText}>Aceitar</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity style={styles.denyButton} onPress={recusarPedido}>
-                        <Text style={styles.denyText}>Recusar</Text>
-                      </TouchableOpacity>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Estado:</Text>
+                      <View style={[styles.estadoBadge, { backgroundColor: getEstadoColor(selectedPedido.estado) }]}>
+                        <Ionicons name={getEstadoIcon(selectedPedido.estado)} size={14} color="#FFFFFF" />
+                        <Text style={styles.estadoText}>{selectedPedido.estado}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Data:</Text>
+                      <Text style={styles.detailValue}>{formatDate(selectedPedido.created_at)}</Text>
                     </View>
                   </View>
-                )}
+
+                  <View style={styles.detailSection}>
+                    <Text style={styles.sectionTitle}>Serviços</Text>
+                    <View style={styles.servicosModal}>
+                      {selectedPedido.servicos_adicionais?.map((servico, index) => (
+                        <View key={index} style={styles.servicoTagModal}>
+                          <Text style={styles.servicoTextModal}>{servico}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+
+                  <View style={styles.detailSection}>
+                    <Text style={styles.sectionTitle}>Valores</Text>
+                    <View style={styles.valorRow}>
+                      <Text style={styles.valorLabel}>Peso:</Text>
+                      <Text style={styles.valorValue}>{(selectedPedido.peso ?? 0).toFixed(2)} kg</Text>
+                    </View>
+                    <View style={styles.valorRow}>
+                      <Text style={styles.valorLabel}>Subtotal:</Text>
+                      <Text style={styles.valorValue}>{(selectedPedido.subtotal ?? 0).toFixed(2)} MT</Text>
+                    </View>
+                    <View style={styles.valorRow}>
+                      <Text style={styles.valorLabel}>IVA (16%):</Text>
+                      <Text style={styles.valorValue}>{(selectedPedido.iva ?? 0).toFixed(2)} MT</Text>
+                    </View>
+                    <View style={[styles.valorRow, styles.totalRow]}>
+                      <Text style={styles.totalLabel}>Total:</Text>
+                      <Text style={styles.totalValue}>{(selectedPedido.total ?? 0).toFixed(2)} MT</Text>
+                    </View>
+                  </View>
                 </>
+*/
+
               )}
             </ScrollView>
           </View>
@@ -921,51 +943,5 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#007AFF',
-  },
-  editButton: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  editButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  buttonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 20,
-    gap: 12,
-  },
-  acceptButton: {
-    flex: 1,
-    backgroundColor: '#34C759',
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginRight: 6,
-  },
-  acceptText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  denyButton: {
-    flex: 1,
-    backgroundColor: '#FF3B30',
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginLeft: 6,
-  },
-  denyText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 16,
   },
 });
