@@ -528,9 +528,9 @@ tbody tr:hover {
             <p>Gestão completa de pedidos de lavagem</p>
         </div>
         <div class="header-actions">
-            <button class="btn-header btn-primary">
+            <a href="{{ url('/pedidos/exportar') }}" class="btn-header btn-primary">
                 <i class="fas fa-download"></i> Exportar Relatório
-            </button>
+            </a>
         </div>
     </div>
 
@@ -560,7 +560,7 @@ tbody tr:hover {
         <div class="stat-card">
             <div class="stat-header">
                 <div>
-                    <div class="stat-number">{{ $pedidos->where('estado', 'Pendente')->count() }}</div>
+                    <div class="stat-number">{{ $pedidos->where('estado', 'Aguardando Confirmação')->count() }}</div>
                     <div class="stat-label">Pedidos Pendentes</div>
                     <div class="stat-trend trend-down">
                         <i class="fas fa-arrow-down"></i> -5% esta semana
@@ -575,7 +575,7 @@ tbody tr:hover {
         <div class="stat-card">
             <div class="stat-header">
                 <div>
-                    <div class="stat-number">{{ $pedidos->where('estado', 'Concluído')->count() }}</div>
+                    <div class="stat-number">{{ $pedidos->where('estado', 'Lavado')->count() }}</div>
                     <div class="stat-label">Pedidos Concluídos</div>
                     <div class="stat-trend trend-up">
                         <i class="fas fa-arrow-up"></i> +18% este mês
@@ -804,7 +804,7 @@ new Chart(pieCtx, {
 // Função para abrir modal (mantida do código original)
 function openModal(id, imagem, servicos, tipo, somenteLeitura=false, factura=false, peso=0, precoKg=0, subtotal=0, iva=0, total=0){
     document.getElementById('pedido_id').value = id;
-    document.getElementById('pedido-image').src = imagem ? `{{ asset('storage') }}/` + imagem : '/default-image.png';
+    document.getElementById('pedido-image').src = imagem ? '/storage/' + imagem : '/default-image.png';
     document.getElementById('tipo_lavagem').value = tipo;
 
     const servicosContainer = document.getElementById('pedido-servicos');
@@ -939,6 +939,19 @@ if(searchInput) {
         });
     });
 }
+
+const exportar = async () => {
+  const response = await api.get('/pedidos/exportar', {
+    responseType: 'blob',
+  });
+
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', 'relatorio.pdf');
+  document.body.appendChild(link);
+  link.click();
+};
 </script>
 </body>
 </html>

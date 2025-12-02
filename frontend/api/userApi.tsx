@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
-const API_URL = 'http://10.224.125.155:8000/api';
+const API_URL = 'http://10.126.103.155:8000/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -22,12 +22,18 @@ export const registerUser = async (data: { name: string; email: string; password
   return res.data;
 };
 
+export const fetchPedidoPorId = async (id: number) => {
+  const res = await api.get(`/pedidos/${id}`);
+  return res.data; // espera os dados do pedido
+};
+
 export const loginUser = async (data: { email: string; password: string }) => {
   const res = await api.post('/login', data);
   const { token, user } = res.data;
   if (token) await AsyncStorage.setItem('token', token);
   return { token, user };
 };
+
 
 export const logoutUser = async () => {
   await api.post('/logout');
@@ -51,8 +57,19 @@ export const criarPedido = async (formData: FormData) => {
   return res.data;
 };
 
-
-
+export const atualizarPedido = async (id: number, formData: FormData) => {
+  try {
+    const response = await api.post(`/pedidos/${id}`, formData, { // <-- usar PUT
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  } catch (err) {
+    console.error("Erro ao atualizar pedido", err);
+    throw err;
+  }
+}
 // 📄 Buscar pedidos do usuário autenticado
 export const getPedidos = async () => {
   const res = await api.get('/pedidos');

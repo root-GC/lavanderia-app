@@ -24,6 +24,8 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/pedidos', [PedidoController::class, 'store']);
+    Route::get('/pedidos/{id}', [PedidoController::class, 'index']); // GET
+    Route::post('/pedidos/{id}', [PedidoController::class, 'update2']); // POST ou PATCH
 });
 
 Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
@@ -34,7 +36,7 @@ Route::middleware('auth:sanctum')->get('/pedidos', [PedidoController::class, 'in
 
 Route::middleware('auth:sanctum')->delete('/pedidos/{id}', [PedidoController::class, 'destroy']);
 
-Route::middleware('auth:sanctum')->post('/pedidos/{id}', [PedidoController::class, 'update']);
+Route::middleware('auth:sanctum')->post('/pedidos/{id}', [PedidoController::class, 'update2']);
 Route::middleware('auth:sanctum')->get('/pedidos-validos', [PedidoController::class, 'pedidosValidos']);
 
 //Route::middleware('auth:sanctum')->group(function () {

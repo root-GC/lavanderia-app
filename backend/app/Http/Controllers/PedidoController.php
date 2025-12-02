@@ -8,8 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use App\Notifications\FacturaProntaNotification;
 use Illuminate\Support\Facades\Storage;
-
-
+use Barryvdh\DomPDF\Facade\Pdf;
 
 
 class PedidoController extends Controller
@@ -376,6 +375,63 @@ public function store(Request $request)
         return response()->json(['success' => true, 'pedido' => $pedido]);
     }
 
+    public function update2(Request $request, $id)
+{
+    // Encontrar pedido
+    $pedido = Pedido::findOrFail($id);
+
+    // Validação (similar ao store)
+    $request->validate([
+        'imagem' => 'nullable|file|image',
+        'tipo' => 'required|in:normal,delicada,seco',
+        'servicos_adicionais' => 'nullable|array',
+        'imagem_local' => 'nullable|string',
+        'estado' => 'nullable|string',
+    ]);
+
+    Log::info('📌 Request para update', $request->all());
+
+    // Atualiza imagem se houver
+    if ($request->hasFile('imagem')) {
+        $file = $request->file('imagem');
+        $pathStorage = $file->store('pedidos', 'public');
+
+        $imagemLocal = $request->input('imagem_local');
+
+        Log::info('📦 Imagem recebida do React:', [
+            'imagem do celular' => $imagemLocal,
+            'path_storage' => $pathStorage,
+        ]);
+
+        $pedido->imagem = $pathStorage;
+        $pedido->imagem_original = $imagemLocal;
+    }
+
+    // Atualiza demais campos
+    $pedido->tipo = $request->tipo;
+    $pedido->servicos_adicionais = $request->servicos_adicionais ?? [];
+    $pedido->estado = $request->estado ?? $pedido->estado;
+
+    // Opcional: manter campos de cálculo (peso, subtotal, iva, total) se forem alterados no frontend
+    $pedido->peso = $request->peso ?? $pedido->peso;
+    $pedido->subtotal = $request->subtotal ?? $pedido->subtotal;
+    $pedido->iva = $request->iva ?? $pedido->iva;
+    $pedido->total = $request->total ?? $pedido->total;
+
+    $pedido->save();
+
+    return response()->json([
+        'success' => true,
+        'pedido' => $pedido,
+        'url_storage' => isset($pathStorage) ? asset('storage/' . $pathStorage) : null,
+        'imagem_local' => $request->input('imagem_local') ?? null
+    ]);
+}
+
+
+
+
+
     public function atualizarEstado(Request $request, $id) {
     $pedido = Pedido::findOrFail($id);
     $pedido->estado = $request->estado;
@@ -396,5 +452,19 @@ public function pedidosValidos(Request $request)
 
     return response()->json(['pedidos' => $pedidos]);
 }
+
+public function exportar()
+    {
+        // Vai buscar os pedidos — ajusta conforme precisares
+        $pedidos = Pedido::all();
+
+        // Gera o PDF com a view "relatorio_pedidos"
+        $pdf = Pdf::loadView('relatorio_pedidos', [
+            'pedidos' => $pedidos
+        ]);
+
+        // Força o download
+        return $pdf->download('relatorio_pedidos.pdf');
+    }
 
 }

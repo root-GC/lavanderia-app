@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -16,6 +16,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api, { getUser } from "../../api/userApi";
+// Use generic type to allow navigation with params
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+// import Pedidos2 from '../hidden/pedidos2';
+// If you need Pedidos2, ensure the file exists at ../hidden/pedidos2.tsx
+// or update the path below to the correct location, e.g.:
+// import Pedidos2 from '../Pedidos2'; // <-- update as needed
 
 interface Pedido {
   id: number;
@@ -29,6 +36,9 @@ interface Pedido {
   estado: string;
   created_at: string;
 }
+
+
+
 
 export default function PedidosFeitos() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
@@ -257,6 +267,15 @@ const recusarPedido = async () => {
       </View>
     </TouchableOpacity>
   );
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  type RootStackParamList = {
+    editarpedidos: { pedidoId: number };
+    // ...other screens
+  };
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+
+
 
   if (loading) {
     return (
@@ -468,9 +487,19 @@ const recusarPedido = async () => {
                 </View>
 
                 {/* SE ESTIVER EM AVALIAÇÃO — MOSTRA APENAS BOTÃO EDITAR */}
-                {selectedPedido.estado === "Aguardando Avaliação" && (
+                {/* {selectedPedido.estado === "Aguardando Avaliação" && (
                   <View style={{ marginTop: 20 }}>
                     <TouchableOpacity style={styles.editButton}>
+                      <Text style={styles.editButtonText}>Editar Pedido</Text>
+                    </TouchableOpacity>
+                  </View>
+                )} */}
+                {selectedPedido.estado === "Aguardando Avaliação" && (
+                  <View style={{ marginTop: 20 }}>
+                   <TouchableOpacity
+                      style={styles.editButton}
+                      onPress={() => navigation.navigate('editarpedidos', { pedidoId: selectedPedido.id })} /////////////////////////////////////////////// Trabalhando aqui
+                    >
                       <Text style={styles.editButtonText}>Editar Pedido</Text>
                     </TouchableOpacity>
                   </View>

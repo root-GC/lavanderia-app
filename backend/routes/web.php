@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PedidoController;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 //Route::get('/admin/pedidos', [PedidoController::class, 'listaWeb']);
 Route::get('/admin/pedidos/{id}/concluir', [PedidoController::class, 'concluirPedido']);
@@ -24,3 +25,10 @@ Route::post('/admin/pedidos/{id}/avaliar', [PedidoController::class, 'avaliar'])
 Route::get('/admin/pedidos/{id}/factura', [PedidoController::class, 'verFactura'])->name('pedidos.factura');
 
 Route::post('/admin/pedidos/{id}/atualizar-estado', [PedidoController::class, 'atualizarEstado']);
+
+
+Route::get('/pedidos/exportar', [PedidoController::class, 'exportar']);
+
+Route::get('/testar-pdf', function () {
+    return Pdf::loadHTML('<h1>PDF OK</h1>')->download('teste.pdf');
+});
