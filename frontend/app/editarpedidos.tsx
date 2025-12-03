@@ -19,15 +19,13 @@ import ImagePickerComponent from "../components/componentes/ImagePicker";
 import ServiceSelector from "../components/componentes/ServiceSelector";
 
 type RootStackParamList = {
-  pedidos: { pedidoId?: number }; // pedidoId opcional: se existir, é edição
+  pedidos: { pedidoId?: number };
 };
 
 type PedidosRouteProp = RouteProp<RootStackParamList, 'pedidos'>;
 
 export default function Pedidos() {
   const router = useRouter();
-
-  // --- Estados do formulário ---
   const [tipo, setTipo] = useState<"normal" | "delicada" | "seco">("normal");
   const [secagem, setSecagem] = useState(false);
   const [passagem, setPassagem] = useState(false);
@@ -36,24 +34,18 @@ export default function Pedidos() {
   const [enviando, setEnviando] = useState(false);
   const [loadingPedido, setLoadingPedido] = useState(false);
 
-  // --- Rota e parâmetros ---
   const route = useRoute<PedidosRouteProp>();
   const { pedidoId } = route.params ?? {};
-
-  // --- Determina se estamos em edição ---
   const isEdit = !!pedidoId;
-
-  // --- Título dinâmico ---
   const titulo = isEdit ? "Editar Pedido" : "Novo Pedido";
 
-  // --- Carregar dados do pedido se estiver em edição ---
   useEffect(() => {
     const loadPedido = async () => {
       if (!isEdit) return;
 
       setLoadingPedido(true);
       try {
-        const data = await fetchPedidoPorId(pedidoId!); // API retorna { pedidos: [...] }
+        const data = await fetchPedidoPorId(pedidoId!);
         const pedido = data.pedidos.find((p: any) => p.id === pedidoId);
 
         if (!pedido) {
@@ -84,55 +76,6 @@ export default function Pedidos() {
     loadPedido();
   }, [isEdit, pedidoId]);
 
-// --- Enviar ou atualizar pedido ---
-const handleEnviarPedido = async () => {
-  if (!imagemRoupa) {
-    Alert.alert("Erro", "Por favor, selecione uma imagem do pedido.");
-    return;
-  }
-
-  setEnviando(true);
-
-  try {
-    const servicos = [
-      secagem && "Secagem",
-      passagem && "Passagem",
-      perfumaria && "Perfumaria",
-    ].filter(Boolean) as string[];
-
-    const formData = new FormData();
-    formData.append("imagem", {
-      uri: imagemRoupa,
-      type: "image/jpeg",
-      name: "pedido.jpg",
-    } as any);
-
-    formData.append("tipo", tipo);
-    formData.append("imagem_local", imagemRoupa); // adiciona URI local
-
-    servicos.forEach((s, i) => formData.append(`servicos_adicionais[${i}]`, s));
-
-    if (isEdit) {
-      // Atualizar pedido existente (PUT no backend)
-      await atualizarPedido(pedidoId!, formData);
-      Alert.alert("Pedido Atualizado", "O pedido foi atualizado com sucesso.");
-    } else {
-      // Criar novo pedido
-      await criarPedido(formData);
-      Alert.alert("Pedido Criado", "O pedido foi enviado com sucesso.");
-    }
-
-  } catch (err) {
-    console.error("Erro ao enviar pedido", err);
-    Alert.alert("Erro", "Não foi possível enviar o pedido.");
-  } finally {
-    setEnviando(false);
-  }
-};
-
-
-/*
-  // --- Enviar ou atualizar pedido ---
   const handleEnviarPedido = async () => {
     if (!imagemRoupa) {
       Alert.alert("Erro", "Por favor, selecione uma imagem do pedido.");
@@ -154,7 +97,10 @@ const handleEnviarPedido = async () => {
         type: "image/jpeg",
         name: "pedido.jpg",
       } as any);
+
       formData.append("tipo", tipo);
+      formData.append("imagem_local", imagemRoupa);
+
       servicos.forEach((s, i) => formData.append(`servicos_adicionais[${i}]`, s));
 
       if (isEdit) {
@@ -172,92 +118,91 @@ const handleEnviarPedido = async () => {
       setEnviando(false);
     }
   };
-*/
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={["#F8FBFF", "#E8F4FF", "#FFFFFF"]} style={styles.gradientBackground}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={{ flex: 1 }}
+          style={styles.keyboardAvoidingView}
         >
           <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-
-            {/* --- Header --- */}
+            
             <View style={styles.header}>
               <LinearGradient colors={["#007AFF", "#0056CC"]} style={styles.headerGradient}>
-
-                {/* Botão Voltar só aparece em edição */}
+                
                 {isEdit && (
-                  <TouchableOpacity
-                    style={styles.voltarButton}
-                    onPress={() => router.back()}
-                  >
-                    <Ionicons name="arrow-back-outline" size={24} color="#FFFFFF" />
+                  <TouchableOpacity style={styles.voltarButton} onPress={() => router.back()}>
+                    <Ionicons name="arrow-back-outline" size={20} color="#FFFFFF" />
                     <Text style={styles.voltarText}>Voltar</Text>
                   </TouchableOpacity>
                 )}
 
-                <Ionicons name="shirt-outline" size={32} color="#FFFFFF" />
+                <Ionicons name="shirt-outline" size={28} color="#FFFFFF" />
                 <Text style={styles.title}>{titulo}</Text>
                 <Text style={styles.subtitle}>Tire uma foto e envie — nós tratamos do resto.</Text>
               </LinearGradient>
             </View>
 
             <View style={styles.formContainer}>
-              {/* Foto das roupas */}
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>
-                  <Ionicons name="camera-outline" size={20} color="#007AFF" /> Foto das Roupas
+                  <Ionicons name="camera-outline" size={18} color="#007AFF" /> Foto das Roupas
                 </Text>
                 <ImagePickerComponent imageUri={imagemRoupa} setImageUri={setImagemRoupa} />
               </View>
 
-              {/* Tipo de lavagem */}
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>
-                  <Ionicons name="options-outline" size={20} color="#007AFF" /> Tipo de Lavagem
+                  <Ionicons name="options-outline" size={18} color="#007AFF" /> Tipo de Lavagem
                 </Text>
                 <ServiceSelector tipo={tipo} setTipo={setTipo} />
               </View>
 
-              {/* Serviços adicionais */}
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>
-                  <Ionicons name="sparkles-outline" size={20} color="#007AFF" /> Serviços Adicionais
+                  <Ionicons name="sparkles-outline" size={18} color="#007AFF" /> Serviços Adicionais
                 </Text>
+                
                 <View style={styles.servicosContainer}>
-                  {(
-                    [
-                      ["Secagem", secagem, setSecagem, "water-outline"],
-                      ["Passagem", passagem, setPassagem, "flame-outline"],
-                      ["Perfumaria", perfumaria, setPerfumaria, "flower-outline"],
-                    ] as [string, boolean, React.Dispatch<React.SetStateAction<boolean>>, string][]
-                  ).map(([label, value, setter, icon]) => (
+                  {[
+                    { label: "Secagem", value: secagem, setter: setSecagem, icon: "water-outline" },
+                    { label: "Passagem", value: passagem, setter: setPassagem, icon: "flame-outline" },
+                    { label: "Perfumaria", value: perfumaria, setter: setPerfumaria, icon: "flower-outline" },
+                  ].map((service) => (
                     <TouchableOpacity
-                      key={label}
-                      style={[styles.serviceButton, value && styles.serviceButtonAtivo]}
-                      onPress={() => setter(!value)}
+                      key={service.label}
+                      style={[styles.serviceButton, service.value && styles.serviceButtonAtivo]}
+                      onPress={() => service.setter(!service.value)}
+                      activeOpacity={0.7}
                     >
-                      <View style={styles.serviceIconContainer}>
-                        <Ionicons name={icon as any} size={20} color={value ? "#FFFFFF" : "#007AFF"} />
+                      <View style={styles.serviceContent}>
+                        <View style={[styles.serviceIconContainer, service.value && styles.serviceIconContainerAtivo]}>
+                          <Ionicons 
+                            name={service.icon as any} 
+                            size={18} 
+                            color={service.value ? "#FFFFFF" : "#007AFF"} 
+                          />
+                        </View>
+                        <Text style={[styles.serviceButtonText, service.value && styles.serviceButtonTextAtivo]}>
+                          {service.label}
+                        </Text>
                       </View>
-                      <Text style={[styles.serviceButtonText, value && styles.serviceButtonTextAtivo]}>{label}</Text>
-                      <View style={[styles.checkbox, value && styles.checkboxAtivo]}>
-                        {value && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
+                      <View style={[styles.checkbox, service.value && styles.checkboxAtivo]}>
+                        {service.value && <Ionicons name="checkmark" size={12} color="#FFFFFF" />}
                       </View>
                     </TouchableOpacity>
                   ))}
                 </View>
               </View>
 
-              {/* Botão enviar/atualizar */}
               <TouchableOpacity
                 style={styles.gerarButton}
                 onPress={handleEnviarPedido}
                 disabled={enviando}
               >
                 <LinearGradient colors={["#007AFF", "#0056CC"]} style={styles.gerarButtonGradient}>
-                  <Ionicons name="cloud-upload-outline" size={24} color="#FFFFFF" />
+                  <Ionicons name="cloud-upload-outline" size={20} color="#FFFFFF" />
                   <Text style={styles.gerarButtonText}>
                     {enviando ? "Enviando..." : isEdit ? "Atualizar Pedido" : "Enviar Pedido"}
                   </Text>
@@ -272,27 +217,155 @@ const handleEnviarPedido = async () => {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
-  gradientBackground: { flex: 1 },
-  scrollContainer: { padding: 16 },
-  header: { marginBottom: 12 },
-  headerGradient: { padding: 16, borderRadius: 12, alignItems: 'center', gap: 6, position: 'relative' },
-  voltarButton: { position: 'absolute', left: 12, top: 16, flexDirection: 'row', alignItems: 'center', gap: 4 },
-  voltarText: { color: '#fff', fontWeight: '600' },
-  title: { color: "#fff", fontSize: 18, fontWeight: '700' },
-  subtitle: { color: "#fff", fontSize: 12 },
-  formContainer: {},
-  card: { marginBottom: 12, padding: 12, backgroundColor: "#fff", borderRadius: 8 },
-  cardTitle: { fontWeight: '600', marginBottom: 8 },
-  servicosContainer: { flexDirection: 'row', justifyContent: 'space-between' },
-  serviceButton: { flex: 1, padding: 8, margin: 4, borderRadius: 8, borderWidth: 1, borderColor: '#E6F0FF', alignItems: 'center', flexDirection: 'row' },
-  serviceButtonAtivo: { backgroundColor: '#007AFF' },
-  serviceIconContainer: { marginRight: 8 },
-  serviceButtonText: {},
-  serviceButtonTextAtivo: { color: '#fff' },
-  checkbox: { marginLeft: 'auto' },
-  checkboxAtivo: { backgroundColor: '#0056CC', padding: 4, borderRadius: 4 },
-  gerarButton: { marginTop: 8 },
-  gerarButtonGradient: { padding: 12, borderRadius: 10, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
-  gerarButtonText: { color: '#fff', fontWeight: '700' },
+  safeArea: { 
+    flex: 1,
+    backgroundColor: '#FFFFFF'
+  },
+  gradientBackground: { 
+    flex: 1 
+  },
+  keyboardAvoidingView: { 
+    flex: 1 
+  },
+  scrollContainer: { 
+    padding: 16,
+    paddingBottom: 30
+  },
+  header: { 
+    marginBottom: 16 
+  },
+  headerGradient: { 
+    padding: 20, 
+    borderRadius: 16, 
+    alignItems: 'center', 
+    position: 'relative',
+    minHeight: 120
+  },
+  voltarButton: {
+    position: 'absolute',
+    left: 16,
+    top: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4
+  },
+  voltarText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600'
+  },
+  title: { 
+    color: "#fff", 
+    fontSize: 22, 
+    fontWeight: '700',
+    marginTop: 8,
+    textAlign: 'center'
+  },
+  subtitle: { 
+    color: "rgba(255,255,255,0.9)", 
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 4
+  },
+  formContainer: {
+    flex: 1
+  },
+  card: { 
+    marginBottom: 16, 
+    padding: 20, 
+    backgroundColor: "#fff", 
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  cardTitle: { 
+    fontWeight: '600', 
+    marginBottom: 12,
+    fontSize: 18,
+    color: '#1a1a1a',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
+  },
+  servicosContainer: { 
+    gap: 12
+  },
+  serviceButton: { 
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#e6e6e6',
+    backgroundColor: '#fafafa'
+  },
+  serviceButtonAtivo: { 
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF'
+  },
+  serviceContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1
+  },
+  serviceIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12
+  },
+  serviceIconContainerAtivo: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)'
+  },
+  serviceButtonText: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+    flex: 1
+  },
+  serviceButtonTextAtivo: { 
+    color: '#fff',
+    fontWeight: '600'
+  },
+  checkbox: { 
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#e6e6e6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent'
+  },
+  checkboxAtivo: { 
+    backgroundColor: '#FFFFFF',
+    borderColor: '#FFFFFF'
+  },
+  gerarButton: { 
+    marginTop: 24,
+    marginBottom: 20
+  },
+  gerarButtonGradient: { 
+    padding: 16, 
+    borderRadius: 14, 
+    flexDirection: 'row', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    gap: 10 
+  },
+  gerarButtonText: { 
+    color: '#fff', 
+    fontWeight: '700',
+    fontSize: 16
+  },
 });

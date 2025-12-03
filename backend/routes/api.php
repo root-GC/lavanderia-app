@@ -25,7 +25,9 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/pedidos', [PedidoController::class, 'store']);
     Route::get('/pedidos/{id}', [PedidoController::class, 'index']); // GET
-    Route::post('/pedidos/{id}', [PedidoController::class, 'update2']); // POST ou PATCH
+    //Route::post('/pedidos/{id}', [PedidoController::class, 'update2']); // POST ou PATCH
+    Route::middleware('auth:sanctum')
+    ->post('/pedidos/{id}/estado', [PedidoController::class, 'update']);
 });
 
 Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
