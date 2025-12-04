@@ -3,14 +3,18 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PedidoController;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Http\Controllers\UserController;
+
+
+Route::get('/', function () {
+    return redirect('/admin/pedidos');
+});
 
 //Route::get('/admin/pedidos', [PedidoController::class, 'listaWeb']);
 Route::get('/admin/pedidos/{id}/concluir', [PedidoController::class, 'concluirPedido']);
 Route::get('/admin/pedidos/{id}/delete', [PedidoController::class, 'destroy']);
 
-Route::get('/', function () {
-    return redirect('/admin/pedidos');
-});
+
 
 
 // Lista pedidos
@@ -32,3 +36,9 @@ Route::get('/pedidos/exportar', [PedidoController::class, 'exportar']);
 Route::get('/testar-pdf', function () {
     return Pdf::loadHTML('<h1>PDF OK</h1>')->download('teste.pdf');
 });
+
+//Route::get('/pedidos-ultimos-7-dias', [PedidoController::class, 'pedidosUltimos7Dias']);
+
+//Route::get('/admin/dashboard', [PedidoController::class, 'dashboard']);
+
+Route::get('/user/{id}/nome', [UserController::class, 'getNome']);

@@ -627,6 +627,7 @@ tbody tr:hover {
                 <tr>
                     <th><i class="fas fa-hashtag"></i> ID</th>
                     <th><i class="fas fa-user"></i> Utilizador</th>
+                    <th><i class="fas fa-user"></i> Nome</th>
                     <th><i class="fas fa-tag"></i> Tipo</th>
                     <th><i class="fas fa-concierge-bell"></i> Serviços</th>
                     <th><i class="fas fa-image"></i> Imagem</th>
@@ -639,6 +640,9 @@ tbody tr:hover {
                 <tr>
                     <td><strong>#{{ $pedido->id }}</strong></td>
                     <td>{{ $pedido->user_id }}</td>
+                    <td class="user-nome" data-user-id="{{ $pedido->user_id }}">
+                        <span>Carregando...</span>
+                    </td>
                     <td>{{ $pedido->tipo }}</td>
                     <td>
                         <div class="servicos-list">
@@ -742,15 +746,67 @@ tbody tr:hover {
 </div>
 
 <script>
+
+document.querySelectorAll('.user-nome').forEach(td => {
+    const userId = td.dataset.userId;
+    const url = "{{ url('/user') }}/" + userId + "/nome"; // gera URL absoluta
+
+    fetch(url)
+        .then(res => res.json())
+        .then(data => {
+            td.textContent = data.nome;
+        })
+        .catch(() => {
+            td.textContent = 'Desconhecido';
+        });
+});
+
 // Gráfico de Linha - Pedidos dos últimos 7 dias
+
+const pedidos = @json($pedidos); // já tens todos os pedidos do controller
+console.log(pedidos); // vai aparecer no DevTools → Console
+// Últimos 7 dias
+const hoje = new Date();
+const datas = [];
+for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(hoje.getDate() - i);
+    datas.push(d);
+}
+
+// Inicializar contagem por dia
+const pedidosPorDia = datas.map(d => {
+    const diaStr = d => d.toLocaleDateString('pt-PT', { weekday: 'short' }); // "Seg", "Ter", ...
+    console.log(diaStr);
+    const dataStr = d.toISOString().split('T')[0]; // "YYYY-MM-DD"
+    console.log(dataStr); // vai aparecer no DevTools → Console
+    //const count = pedidos.filter(p => p.created_at.split(' ')[0] === dataStr).length;
+    const count = pedidos.filter(p => {
+    const pedidoDate = new Date(p.created_at);
+    // comparar só o ano, mês e dia
+    return pedidoDate.getFullYear() === d.getFullYear() &&
+           pedidoDate.getMonth() === d.getMonth() &&
+           pedidoDate.getDate() === d.getDate();
+}).length;
+    console.log(count);
+    return { label: diaStr(d), count };
+});
+
+// Preparar arrays para Chart.js
+const labels = pedidosPorDia.map(p => p.label);
+const data = pedidosPorDia.map(p => p.count);
+console.log(labels);
+console.log(data);
+
+// Criar gráfico
 const lineCtx = document.getElementById('lineChart').getContext('2d');
 new Chart(lineCtx, {
     type: 'line',
     data: {
-        labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
+        labels: labels,
         datasets: [{
             label: 'Pedidos',
-            data: [12, 19, 15, 25, 22, 30, 28],
+            data: data,
             borderColor: '#6366f1',
             backgroundColor: 'rgba(99, 102, 241, 0.1)',
             tension: 0.4,
@@ -763,15 +819,17 @@ new Chart(lineCtx, {
     options: {
         responsive: true,
         maintainAspectRatio: true,
-        plugins: {
-            legend: { display: false }
-        },
+        plugins: { legend: { display: false } },
         scales: {
             y: { beginAtZero: true, grid: { color: '#e2e8f0' } },
             x: { grid: { display: false } }
         }
     }
 });
+
+
+
+
 
 // Gráfico de Pizza - Status dos pedidos
 const pieCtx = document.getElementById('pieChart').getContext('2d');

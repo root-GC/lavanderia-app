@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Http\JsonResponse;
 
 class UserController extends Controller
 {
@@ -93,4 +94,18 @@ public function update(Request $request)
     {
         //
     }
+
+    public function getNome($id): JsonResponse
+{
+    // Tenta buscar o utilizador pelo ID
+    $user = User::find($id);
+
+    if ($user) {
+        // Retorna o nome em JSON
+        return response()->json(['nome' => $user->name]);
+    }
+
+    // Se não existir, retorna um default
+    return response()->json(['nome' => 'Desconhecido'], 404);
+}
 }

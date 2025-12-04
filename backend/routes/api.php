@@ -49,3 +49,5 @@ Route::middleware('auth:sanctum')->get('/pedidos-validos', [PedidoController::cl
 
 // Rotas admin (proteger com middleware 'admin')
  //   Route::post('/admin/pedidos/{id}/avaliar', [PedidoController::class, 'avaliar']); // admin avalia (peso + preços)
+// routes/api.php
+Route::get('/pedidos-ultimos-7-dias', [PedidoController::class, 'pedidosUltimos7Dias']);

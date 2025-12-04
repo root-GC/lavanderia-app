@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\Log;
 use App\Notifications\FacturaProntaNotification;
 use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
-
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class PedidoController extends Controller
 {
@@ -139,6 +140,7 @@ public function listaWeb(Request $request)
         $pedido->servicos_adicionais = $pedido->servicos_adicionais ?? [];
         return $pedido;
     });
+
 
     return view('admin.pedidos', compact('pedidos'));
 }
@@ -466,5 +468,6 @@ public function exportar()
         // Força o download
         return $pdf->download('relatorio_pedidos.pdf');
     }
+
 
 }
